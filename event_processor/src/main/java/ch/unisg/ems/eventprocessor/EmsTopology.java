@@ -12,6 +12,7 @@ import ch.unisg.ems.eventprocessor.serialization.json.ConsumptionEventSerdes;
 import ch.unisg.ems.eventprocessor.serialization.json.JsonSerdes;
 import ch.unisg.ems.eventprocessor.serialization.json.ProductionEventSerdes;
 import ch.unisg.ems.eventprocessor.timestampExtractors.ProductionTimestampExtractor;
+import com.mitchseymour.kafka.serialization.avro.AvroSerdes;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -42,22 +43,21 @@ class EmsTopology {
         streamProduction.print(Printed.<byte[], ProductionEvent>toSysOut().withLabel("pv_production-event-stream"));
 
         // start streaming consumption events using our custom value serdes.
-        KStream<byte[], ConsumptionEvent> streamConsumption =
+        /*KStream<byte[], ConsumptionEvent> streamConsumption =
                 builder.stream("energy_consumption", Consumed.with(Serdes.ByteArray(), new ConsumptionEventSerdes()));
         streamConsumption.print(Printed.<byte[], ConsumptionEvent>toSysOut().withLabel("energy_consumption-event-stream"));
-
+        */
         /**
          * Consume global ktable to inititalize customer data
          */
         GlobalKTable<String, Customer> customerTable =
                 builder.globalTable("customers", Consumed.with(Serdes.String(), JsonSerdes.Customer()));
 
-
         // Apply content filter to production events, Keep only relevant attributes
-        KStream<byte[], EntityProductionEvent> contentFilteredProductionEvents =
+        KStream<byte[], ProductionEvent> contentFilteredProductionEvents =
                 streamProduction.mapValues(
                         (event) -> {
-                            EntityProductionEvent contentFilteredProductionEvent = new EntityProductionEvent();
+                            ProductionEvent contentFilteredProductionEvent = new ProductionEvent();
                             contentFilteredProductionEvent.setPvId(event.getPvId());
                             contentFilteredProductionEvent.setLoad(event.getLoad());
                             contentFilteredProductionEvent.setTimestamp(event.getTimestamp());
@@ -66,7 +66,7 @@ class EmsTopology {
                         });
 
         // Apply content filter to production events, keep only relevant attributes
-        KStream<byte[], EntityConsumptionEvent> contentFilteredConsumptionEvents =
+        /*KStream<byte[], EntityConsumptionEvent> contentFilteredConsumptionEvents =
                 streamConsumption.mapValues(
                         (event) -> {
                             EntityConsumptionEvent contentFilteredConsumptionEvent = new EntityConsumptionEvent();
@@ -75,7 +75,7 @@ class EmsTopology {
                             contentFilteredConsumptionEvent.setTimestamp(event.getTimestamp());
                             contentFilteredConsumptionEvent.setUnitLoad(event.getUnitLoad());
                             return contentFilteredConsumptionEvent;
-                        });
+                        });*/
 
         /*
          * Unit converter for production events
@@ -83,55 +83,54 @@ class EmsTopology {
          */
 
         // match all events that have kW as unit
-        Predicate<byte[], EntityProductionEvent> unitKW = (key, event) -> event.getUnitLoad().equals("kW");
+        Predicate<byte[], ProductionEvent> unitKW = (key, event) -> event.getUnitLoad().equals("kW");
 
         // match all other events
-        Predicate<byte[], EntityProductionEvent> unitNotKW = (key, event) -> !event.getUnitLoad().equals("kW");
+        Predicate<byte[], ProductionEvent> unitNotKW = (key, event) -> !event.getUnitLoad().equals("kW");
 
         // branch based on load unit
-        KStream<byte[], EntityProductionEvent>[] branches = contentFilteredProductionEvents.branch(unitKW, unitNotKW);
+        KStream<byte[], ProductionEvent>[] branches = contentFilteredProductionEvents.branch(unitKW, unitNotKW);
 
         // load unit: kW
-        KStream<byte[], EntityProductionEvent> kWStream = branches[0];
-        kWStream.print(Printed.<byte[], EntityProductionEvent>toSysOut().withLabel("event-kW"));
+        KStream<byte[], ProductionEvent> kWStream = branches[0];
+        kWStream.print(Printed.<byte[], ProductionEvent>toSysOut().withLabel("event-kW"));
 
         // load unit: not kW
-        KStream<byte[], EntityProductionEvent> notKwStream = branches[1];
-        notKwStream.print(Printed.<byte[], EntityProductionEvent>toSysOut().withLabel("events-not-kW"));
+        KStream<byte[], ProductionEvent> notKwStream = branches[1];
+        notKwStream.print(Printed.<byte[], ProductionEvent>toSysOut().withLabel("events-not-kW"));
 
         // for events where the load unit is not kW convert the load to kW
-        KStream<byte[], EntityProductionEvent> convertedStream =
+        KStream<byte[], ProductionEvent> convertedStream =
                 notKwStream.mapValues(
                         (event) -> unitConverter.convertToKW(event));
 
         // merge the two streams
-        KStream<byte[], EntityProductionEvent> mergedProduction = kWStream.merge(convertedStream);
+        KStream<byte[], ProductionEvent> mergedProduction = kWStream.merge(convertedStream);
 
         /*
          * Filter events that contain not allowed measurements
          */
         // filter out events with a load greater than 100 kW (measurement error since the pv system is only 100 kW)
-        KStream<byte[], EntityProductionEvent> filteredProduction =
+        KStream<byte[], ProductionEvent> filteredProduction =
                 mergedProduction.filterNot(
                         (key, event) -> event.getLoad() > MAX_PRODUCTION_LOAD);
 
         // filter out events with a load greater than 100 kW (measurement error since the pv system is only 100 kW)
-        KStream<byte[], EntityConsumptionEvent> filteredConsumption =
+        /*KStream<byte[], EntityConsumptionEvent> filteredConsumption =
                 contentFilteredConsumptionEvents.filterNot(
-                        (key, event) -> event.getLoad() > MAX_CONSUMPTION_LOAD);
+                        (key, event) -> event.getLoad() > MAX_CONSUMPTION_LOAD);*/
 
         /**
          * Join customer information to Production and Consumption streams
          */
-        KeyValueMapper<byte[], EntityProductionEvent, String> keyMapper =
+        KeyValueMapper<byte[], ProductionEvent, String> keyMapper =
                 (leftKey, entityProductionEvent) -> String.valueOf(entityProductionEvent.getPvId());
 
         // join the withPlayers stream to the product global ktable
-        ValueJoiner<EntityProductionEvent, Customer, ProductionEventWithCustomer> customerJoiner =
+        ValueJoiner<ProductionEvent, Customer, ProductionEventWithCustomer> customerJoiner =
                 (entityProductionEvent, customer) -> new ProductionEventWithCustomer(entityProductionEvent, customer);
         KStream<byte[], ProductionEventWithCustomer> productionWithCustomer = filteredProduction.join(customerTable, keyMapper, customerJoiner);
         productionWithCustomer.print(Printed.<byte[], ProductionEventWithCustomer>toSysOut().withLabel("with-products"));
-
         /**
          * Stateful processing for joined production stream
          * group by customer and aggregate average load over tumbling window
@@ -139,9 +138,7 @@ class EmsTopology {
         // Window config for production events
         TimeWindows tumblingWindowProductionEvents =
                 TimeWindows.of(Duration.ofSeconds(10)).grace(Duration.ofSeconds(1));
-
-
-        // aggregation: average load, max load
+        // aggregation: average load, max load, count
         Initializer<ProductionAggregation> productionEventsInitializer = () -> new ProductionAggregation(0,0, 0);
 
         Aggregator<String, ProductionEventWithCustomer, ProductionAggregation> productionEventAggregator = (key, production, productionAggregation) -> {
@@ -171,10 +168,8 @@ class EmsTopology {
                         // suppress
                         .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().shutDownWhenFull()));
 
-
-
         // send the merged streamProduction to the "pv_production_clean" topic
-        /*filteredConsumption.to(
+        /*filteredProduction.to(
                 "pv_production_clean",
                 Produced.with(
                         Serdes.ByteArray(),

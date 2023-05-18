@@ -6,19 +6,19 @@ import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
 
 public class ProductionEventWithCustomer {
 
-    private EntityProductionEvent entityProductionEvent;
+    private ProductionEvent entityProductionEvent;
     private Customer customer;
 
-    public ProductionEventWithCustomer(EntityProductionEvent entityProductionEvent, Customer customer) {
+    public ProductionEventWithCustomer(ProductionEvent entityProductionEvent, Customer customer) {
         this.entityProductionEvent = entityProductionEvent;
         this.customer = customer;
     }
 
-    public EntityProductionEvent getEntityProductionEvent() {
+    public ProductionEvent getEntityProductionEvent() {
         return entityProductionEvent;
     }
 
-    public void setEntityProductionEvent(EntityProductionEvent entityProductionEvent) {
+    public void setEntityProductionEvent(ProductionEvent entityProductionEvent) {
         this.entityProductionEvent = entityProductionEvent;
     }
 

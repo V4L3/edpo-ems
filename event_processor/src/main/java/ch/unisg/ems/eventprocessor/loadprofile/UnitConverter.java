@@ -1,10 +1,11 @@
 package ch.unisg.ems.eventprocessor.loadprofile;
 
 import ch.unisg.ems.eventprocessor.model.EntityProductionEvent;
+import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
 
 public class UnitConverter {
 
-    public EntityProductionEvent convertToKW(EntityProductionEvent event) {
+    public ProductionEvent convertToKW(ProductionEvent event) {
         double convertedLoad = 0;
 
         if (event.getUnitLoad().equals("W")) { // watt
