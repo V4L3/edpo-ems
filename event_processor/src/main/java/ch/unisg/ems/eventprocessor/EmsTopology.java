@@ -115,6 +115,31 @@ class EmsTopology {
                 mergedProduction.filterNot(
                         (key, event) -> event.getLoad() > MAX_PRODUCTION_LOAD);
 
+        // TO TEST OUT JAVALIN - TABLE WITH PRODUCTION EVENTS COUNT
+        // Window config for production events
+        TimeWindows tumblingWindowClicks =
+                TimeWindows.of(Duration.ofSeconds(5)).grace(Duration.ofSeconds(1));
+
+        //Group clicks by AOI, Window by tumblingWindowClicks, Aggregage:count, Materialize, suppress
+        KTable<Windowed<String>, Long> productionEvents =
+                filteredProduction
+                        // group by AOI
+                        .groupBy((key, value) -> value.getPvId(),
+                                Grouped.<String, ProductionEvent>with(Serdes.String(), JsonSerdes.ProductionEvent()))
+                        // windowing by config
+                        .windowedBy(tumblingWindowClicks)
+                        // windowed aggregation
+                        .count(Materialized.as("productionEvents"))
+                        /*.aggregate(
+                                productionEventsInitializer,
+                                productionEventAggregator,
+                                Materialized.<String, ProductionAggregation, WindowStore<Bytes, byte[]>>as("productionEvents")
+                                        .withKeySerde(Serdes.String())
+                                        .withValueSerde(JsonSerdes.ProductionAggregation())
+                        )*/
+                        // suppress
+                        .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().shutDownWhenFull()));
+
         // filter out events with a load greater than 100 kW (measurement error since the pv system is only 100 kW)
         /*KStream<byte[], EntityConsumptionEvent> filteredConsumption =
                 contentFilteredConsumptionEvents.filterNot(
@@ -126,11 +151,12 @@ class EmsTopology {
         KeyValueMapper<byte[], ProductionEvent, String> keyMapper =
                 (leftKey, entityProductionEvent) -> String.valueOf(entityProductionEvent.getPvId());
 
-        // join the withPlayers stream to the product global ktable
+        // join the withPlayers stream to the customers global ktable
         ValueJoiner<ProductionEvent, Customer, ProductionEventWithCustomer> customerJoiner =
                 (entityProductionEvent, customer) -> new ProductionEventWithCustomer(entityProductionEvent, customer);
         KStream<byte[], ProductionEventWithCustomer> productionWithCustomer = filteredProduction.join(customerTable, keyMapper, customerJoiner);
-        productionWithCustomer.print(Printed.<byte[], ProductionEventWithCustomer>toSysOut().withLabel("with-products"));
+        productionWithCustomer.print(Printed.<byte[], ProductionEventWithCustomer>toSysOut().withLabel("with-customer"));
+
         /**
          * Stateful processing for joined production stream
          * group by customer and aggregate average load over tumbling window

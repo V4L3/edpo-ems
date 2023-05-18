@@ -3,6 +3,8 @@ package ch.unisg.ems.eventprocessor;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
+import org.apache.kafka.streams.state.HostInfo;
 
 import java.util.Properties;
 
@@ -18,9 +20,19 @@ class EventProcessingApp {
     // build the topology and start streaming!
     KafkaStreams streams = new KafkaStreams(topology, config);
 
+    streams.setUncaughtExceptionHandler(ex -> {
+      System.out.println("Kafka-Streams uncaught exception occurred. Stream will be replaced with new thread:"+ ex.toString());
+      return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
+    });
+
     Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
 
     System.out.println("Starting Event streams");
     streams.start();
+
+    // start the REST service
+    HostInfo hostInfo = new HostInfo("localhost", 7070);
+    MonitorService service = new MonitorService(hostInfo, streams);
+    service.start();
   }
 }

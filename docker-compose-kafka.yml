@@ -31,6 +31,19 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
+    working_dir: /data
+    volumes:
+        - ./data:/data
+
+  kafka-create-topics:
+    image: "bitnami/kafka:latest"
+    depends_on:
+      - kafka
+    hostname: kafka-create-topics
+    command: [ "bash", "./create-topics.sh" ]
+    working_dir: /scripts
+    volumes:
+      - ./scripts:/scripts
 
   kafdrop:
     image: obsidiandynamics/kafdrop
