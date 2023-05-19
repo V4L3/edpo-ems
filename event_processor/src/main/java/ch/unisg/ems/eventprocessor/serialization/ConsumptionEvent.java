@@ -11,6 +11,8 @@ public class ConsumptionEvent {
     String consumerId;
     @SerializedName("timestamp")
     Long timestamp;
+    @SerializedName("customer_id")
+    String customerId;
 
     public String getConsumerId() {
         return consumerId;
@@ -18,6 +20,14 @@ public class ConsumptionEvent {
 
     public void setConsumerId(String consumerId) {
         this.consumerId = consumerId;
+    }
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
     }
 
     public double getLoad() {

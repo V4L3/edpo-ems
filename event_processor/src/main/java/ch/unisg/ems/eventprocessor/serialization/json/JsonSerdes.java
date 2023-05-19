@@ -1,7 +1,9 @@
 package ch.unisg.ems.eventprocessor.serialization.json;
 
 import ch.unisg.ems.eventprocessor.model.Customer;
+import ch.unisg.ems.eventprocessor.model.aggregations.ConsumptionAggregation;
 import ch.unisg.ems.eventprocessor.model.aggregations.ProductionAggregation;
+import ch.unisg.ems.eventprocessor.model.join.ConsumptionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.model.join.ProductionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
 import org.apache.kafka.common.serialization.Serde;
@@ -21,15 +23,32 @@ public class JsonSerdes {
         return Serdes.serdeFrom(serializer, deserializer);
     }
 
+    public static Serde<ConsumptionEventWithCustomer> ConsumptionEventWithCustomer() {
+        JsonSerializer<ConsumptionEventWithCustomer> serializer = new JsonSerializer<>();
+        JsonDeserializer<ConsumptionEventWithCustomer> deserializer = new JsonDeserializer<>(ConsumptionEventWithCustomer.class);
+        return Serdes.serdeFrom(serializer, deserializer);
+    }
+
     public static Serde<ProductionAggregation> ProductionAggregation() {
         JsonSerializer<ProductionAggregation> serializer = new JsonSerializer<>();
         JsonDeserializer<ProductionAggregation> deserializer = new JsonDeserializer<>(ProductionAggregation.class);
+        return Serdes.serdeFrom(serializer, deserializer);
+    }
+    public static Serde<ConsumptionAggregation> ConsumptionAggregation() {
+        JsonSerializer<ConsumptionAggregation> serializer = new JsonSerializer<>();
+        JsonDeserializer<ConsumptionAggregation> deserializer = new JsonDeserializer<>(ConsumptionAggregation.class);
         return Serdes.serdeFrom(serializer, deserializer);
     }
 
     public static Serde<ProductionEvent> ProductionEvent() {
         JsonSerializer<ProductionEvent> serializer = new JsonSerializer<>();
         JsonDeserializer<ProductionEvent> deserializer = new JsonDeserializer<>(ProductionEvent.class);
+        return Serdes.serdeFrom(serializer, deserializer);
+    }
+
+    public static <T> Serde<T> jsonSerde(Class<T> valueType) {
+        JsonSerializer<T> serializer = new JsonSerializer<>();
+        JsonDeserializer<T> deserializer = new JsonDeserializer<>(valueType);
         return Serdes.serdeFrom(serializer, deserializer);
     }
 

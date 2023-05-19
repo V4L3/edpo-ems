@@ -1,6 +1,5 @@
 package ch.unisg.ems.eventprocessor.loadprofile;
 
-import ch.unisg.ems.eventprocessor.model.EntityProductionEvent;
 import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
 
 public class UnitConverter {

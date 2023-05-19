@@ -1,7 +1,6 @@
 package ch.unisg.ems.eventprocessor.model.join;
 
 import ch.unisg.ems.eventprocessor.model.Customer;
-import ch.unisg.ems.eventprocessor.model.EntityProductionEvent;
 import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
 
 public class ProductionEventWithCustomer {

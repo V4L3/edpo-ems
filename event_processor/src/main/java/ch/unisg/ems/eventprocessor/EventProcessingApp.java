@@ -1,5 +1,6 @@
 package ch.unisg.ems.eventprocessor;
 
+import ch.unisg.ems.eventprocessor.topology.EmsTopology;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -21,7 +22,7 @@ class EventProcessingApp {
     KafkaStreams streams = new KafkaStreams(topology, config);
 
     streams.setUncaughtExceptionHandler(ex -> {
-      System.out.println("Kafka-Streams uncaught exception occurred. Stream will be replaced with new thread:"+ ex.toString());
+      System.out.println("Kafka-Streams uncaught exception occurred. Stream will be replaced with new thread:" + ex.toString());
       return StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.REPLACE_THREAD;
     });
 

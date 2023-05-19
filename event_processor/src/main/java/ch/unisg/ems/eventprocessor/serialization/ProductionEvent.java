@@ -16,6 +16,16 @@ public class ProductionEvent {
     @SerializedName("unit_reactive")
     String unitReactive;
 
+    @SerializedName("customer_id")
+    String customerId;
+
+    public String getCustomerId() {
+        return customerId;
+    }
+
+    public void setCustomerId(String customerId) {
+        this.customerId = customerId;
+    }
 
     public String getPvId() {
         return pvId;
