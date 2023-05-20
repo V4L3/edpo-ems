@@ -158,7 +158,8 @@ public class EmsTopology {
         /**
          * Join customer information to Production and Consumption streams
          */
-        KeyValueMapper<byte[], ProductionEvent, String> keyMapperProduction =
+        /*COMMENTED THIS BECAUSE JOINING WITH CUSTOMERS DOES NOT WORK YET*/
+        /*KeyValueMapper<byte[], ProductionEvent, String> keyMapperProduction =
                 (leftKey, entityProductionEvent) -> String.valueOf(entityProductionEvent.getCustomerId());
 
         // join the productionevent stream to the customers global ktable
@@ -166,7 +167,7 @@ public class EmsTopology {
                 (entityProductionEvent, customer) -> new ProductionEventWithCustomer(entityProductionEvent, customer);
         KStream<byte[], ProductionEventWithCustomer> productionWithCustomer = filteredProduction.join(customerTable, keyMapperProduction, customerJoinerProduction);
         productionWithCustomer.print(Printed.<byte[], ProductionEventWithCustomer>toSysOut().withLabel("with-customer"));
-
+*/
 
         KeyValueMapper<byte[], ConsumptionEvent, String> keyMapperConsumption =
                 (leftKey, entityConsumptionEvent) -> String.valueOf(entityConsumptionEvent.getCustomerId());
@@ -188,10 +189,10 @@ public class EmsTopology {
         // aggregation: average load, max load, count
         Initializer<ProductionAggregation> productionEventsInitializer = () -> new ProductionAggregation(0,0, 0);
 
-        Aggregator<String, ProductionEventWithCustomer, ProductionAggregation> productionEventAggregator = (key, production, productionAggregation) -> {
+        Aggregator<String, ProductionEvent, ProductionAggregation> productionEventAggregator = (key, production, productionAggregation) -> {
             int newProductionEventCount = productionAggregation.getCount() + 1;
-            double newMaxLoad = Math.max(productionAggregation.getMaxLoad(), production.getEntityProductionEvent().getLoad());
-            double newAverageLoad = (productionAggregation.getAverageLoad() * (newProductionEventCount - 1) + production.getEntityProductionEvent().getLoad()) / newProductionEventCount;
+            double newMaxLoad = Math.max(productionAggregation.getMaxLoad(), production.getLoad());
+            double newAverageLoad = (productionAggregation.getAverageLoad() * (newProductionEventCount - 1) + production.getLoad()) / newProductionEventCount;
             return new ProductionAggregation(newAverageLoad, newMaxLoad, newProductionEventCount);
         };
 
@@ -211,10 +212,10 @@ public class EmsTopology {
 
         // Group production events by customer id, Window by tumblingWindowFixations, Aggregate, Materialize, suppress
         KTable<Windowed<String>, ProductionAggregation> productionAggregationTable =
-                productionWithCustomer
+                filteredProduction
                         // group by AOI
-                        .groupBy((key, value) -> value.getCustomer().getId(),
-                                Grouped.<String, ProductionEventWithCustomer>with(Serdes.String(), JsonSerdes.ProductionEventWithCustomer()))
+                        .groupBy((key, value) -> value.getCustomerId(),
+                                Grouped.<String, ProductionEvent>with(Serdes.String(), JsonSerdes.ProductionEvent()))
                         // windowing by config
                         .windowedBy(tumblingWindowProductionEvents)
                         // windowed aggregation

@@ -70,7 +70,7 @@ public class ProducerProduction {
             JSONObject jsonObj = new JSONObject();
             for (int i = 0; i < values.length; i++) {
                 if (Objects.equals(headers[i], "timestamp")) {
-                    jsonObj.put(headers[i], Instant.now().getEpochSecond());
+                    jsonObj.put(headers[i], System.currentTimeMillis());
                 } else {
                     jsonObj.put(headers[i], values[i]);
                 }

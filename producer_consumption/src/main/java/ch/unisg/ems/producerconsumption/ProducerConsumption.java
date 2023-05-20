@@ -11,13 +11,13 @@ import java.util.*;
 
 public class ProducerConsumption {
 
-    private final static String TOPIC_NAME = "energy_consumation";
+    private final static String TOPIC_NAME = "energy_consumption";
     private final static String BOOTSTRAP_SERVERS = "localhost:9092";
 
     // dataset path, csv file has to be in resources directory
     private final static String LOAD_PROFILE_DIRECTORY = "loadprofiles";
     // dataset path, csv file has to be in resources directory
-    private final static String DEFAULT_CSV_DATASET = "2022_Production.csv";
+    private final static String DEFAULT_CSV_DATASET = "2022_Consumption.csv";
 
     private final static String delimiter = ";";
 
@@ -67,7 +67,7 @@ public class ProducerConsumption {
             JSONObject jsonObj = new JSONObject();
             for (int i = 0; i < values.length; i++) {
                 if (Objects.equals(headers[i], "timestamp")) {
-                    jsonObj.put(headers[i], Instant.now().getEpochSecond());
+                    jsonObj.put(headers[i], System.currentTimeMillis());
                 } else {
                     jsonObj.put(headers[i], values[i]);
                 }

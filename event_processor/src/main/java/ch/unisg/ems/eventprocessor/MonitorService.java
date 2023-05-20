@@ -33,7 +33,13 @@ public class MonitorService {
     void start() {
 
         // Create and start a Javalin server instance with the specified port
-        Javalin app = Javalin.create().start(hostInfo.port());
+        Javalin app = Javalin.create(/*config -> {
+            config.plugins.enableCors(cors -> {
+                cors.add(it -> {
+                    it.anyHost();
+                });
+            });
+        }*/).start(hostInfo.port());
 
         // Define a route for querying in the key-value store
         app.get("/productionMonitor", this::getProductionAggregations);
@@ -60,6 +66,8 @@ public class MonitorService {
             monitor.put(aoi, fixationStats);
         }
         range.close();
+        ctx.header("Access-Control-Allow-Origin", "*");
+        ctx.header("Access-Control-Allow-Credentials", "true");
         ctx.json(monitor);
     }
 
