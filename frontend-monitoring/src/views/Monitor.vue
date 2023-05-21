@@ -1,5 +1,6 @@
 <script setup>
 import Monitor from "@/components/Monitor.vue";
+import Apex from "@/components/Apex.vue";
 
 </script>
 
@@ -7,7 +8,8 @@ import Monitor from "@/components/Monitor.vue";
   <v-container>
 
   </v-container>
-  <Monitor />
+<!--  <Monitor />-->
+  <Apex />
 
 </template>
 

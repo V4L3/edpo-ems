@@ -4,6 +4,7 @@ import { createApp } from 'vue'
 
 // Plugins
 import { registerPlugins } from '@/plugins'
+import VueApexCharts from "vue3-apexcharts";
 // Vuetify
 import 'vuetify/styles'
 import { createVuetify } from 'vuetify'
@@ -26,6 +27,8 @@ registerPlugins(app)
 app.use(router)
 
 app.use(vuetify).mount('#app')
+
+app.use(VueApexCharts);
 
 /*
 //initialize Websocket with STOMP and SockJS
