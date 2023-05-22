@@ -36,12 +36,14 @@ services:
         - ./data:/data
 
   kafka-create-topics:
-    image: "bitnami/kafka:latest"
+    image: "confluentinc/cp-enterprise-kafka:6.0.0"
     depends_on:
       - kafka
     hostname: kafka-create-topics
-    command: [ "bash", "./create-topics.sh" ]
+    command: [ "bash", "./create-topics-and-data.sh" ]
     working_dir: /scripts
+    networks:
+      - ems
     volumes:
       - ./scripts:/scripts
 

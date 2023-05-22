@@ -3,6 +3,7 @@ package ch.unisg.ems.eventprocessor.serialization.json;
 import ch.unisg.ems.eventprocessor.model.Customer;
 import ch.unisg.ems.eventprocessor.model.aggregations.ConsumptionAggregation;
 import ch.unisg.ems.eventprocessor.model.aggregations.ProductionAggregation;
+import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumption;
 import ch.unisg.ems.eventprocessor.model.join.ConsumptionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.model.join.ProductionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
@@ -37,6 +38,12 @@ public class JsonSerdes {
     public static Serde<ConsumptionAggregation> ConsumptionAggregation() {
         JsonSerializer<ConsumptionAggregation> serializer = new JsonSerializer<>();
         JsonDeserializer<ConsumptionAggregation> deserializer = new JsonDeserializer<>(ConsumptionAggregation.class);
+        return Serdes.serdeFrom(serializer, deserializer);
+    }
+
+    public static Serde<AggregatedProductionConsumption> AggregatedProductionConsumption() {
+        JsonSerializer<AggregatedProductionConsumption> serializer = new JsonSerializer<>();
+        JsonDeserializer<AggregatedProductionConsumption> deserializer = new JsonDeserializer<>(AggregatedProductionConsumption.class);
         return Serdes.serdeFrom(serializer, deserializer);
     }
 

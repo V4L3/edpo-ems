@@ -4,6 +4,7 @@ import ch.unisg.ems.eventprocessor.loadprofile.UnitConverter;
 import ch.unisg.ems.eventprocessor.model.Customer;
 import ch.unisg.ems.eventprocessor.model.aggregations.ConsumptionAggregation;
 import ch.unisg.ems.eventprocessor.model.aggregations.ProductionAggregation;
+import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumption;
 import ch.unisg.ems.eventprocessor.model.join.ConsumptionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.model.join.ProductionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.serialization.ConsumptionEvent;
@@ -13,8 +14,10 @@ import ch.unisg.ems.eventprocessor.serialization.json.JsonSerdes;
 import ch.unisg.ems.eventprocessor.serialization.json.ProductionEventSerdes;
 import ch.unisg.ems.eventprocessor.timestampExtractors.ConsumptionTimestampExtractor;
 import ch.unisg.ems.eventprocessor.timestampExtractors.ProductionTimestampExtractor;
+import com.mitchseymour.kafka.serialization.avro.AvroSerdes;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.*;
@@ -81,7 +84,7 @@ public class EmsTopology {
                             contentFilteredConsumptionEvent.setUnitLoad(event.getUnitLoad());
                             return contentFilteredConsumptionEvent;
                         });
-        /*
+        /**
          * Unit converter for production events
          * divide into 2 branches -> convert unit if needed -> merge branches
          */
@@ -111,7 +114,7 @@ public class EmsTopology {
         // merge the two streams
         KStream<byte[], ProductionEvent> mergedProduction = kWStream.merge(convertedStream);
 
-        /*
+        /**
          * Filter events that contain not allowed measurements
          */
         // filter out events with a load greater than 100 kW (measurement error since the pv system is only 100 kW)
@@ -159,7 +162,7 @@ public class EmsTopology {
          * Join customer information to Production and Consumption streams
          */
         /*COMMENTED THIS BECAUSE JOINING WITH CUSTOMERS DOES NOT WORK YET*/
-        /*KeyValueMapper<byte[], ProductionEvent, String> keyMapperProduction =
+        KeyValueMapper<byte[], ProductionEvent, String> keyMapperProduction =
                 (leftKey, entityProductionEvent) -> String.valueOf(entityProductionEvent.getCustomerId());
 
         // join the productionevent stream to the customers global ktable
@@ -167,7 +170,7 @@ public class EmsTopology {
                 (entityProductionEvent, customer) -> new ProductionEventWithCustomer(entityProductionEvent, customer);
         KStream<byte[], ProductionEventWithCustomer> productionWithCustomer = filteredProduction.join(customerTable, keyMapperProduction, customerJoinerProduction);
         productionWithCustomer.print(Printed.<byte[], ProductionEventWithCustomer>toSysOut().withLabel("with-customer"));
-*/
+
 
         KeyValueMapper<byte[], ConsumptionEvent, String> keyMapperConsumption =
                 (leftKey, entityConsumptionEvent) -> String.valueOf(entityConsumptionEvent.getCustomerId());
@@ -195,7 +198,6 @@ public class EmsTopology {
             double newAverageLoad = (productionAggregation.getAverageLoad() * (newProductionEventCount - 1) + production.getLoad()) / newProductionEventCount;
             return new ProductionAggregation(newAverageLoad, newMaxLoad, newProductionEventCount);
         };
-
 
         // Window config for consumption events
         TimeWindows tumblingWindowConsumptionEvents =
@@ -232,11 +234,11 @@ public class EmsTopology {
         // Group consumption events by customer id, Window by tumblingWindow, Aggregate, Materialize, suppress
         KTable<Windowed<String>, ConsumptionAggregation> consumptionAggregationTable =
                 consumptionWithCustomer
-                        // group by AOI
+                        // group by customer ID
                         .groupBy((key, value) -> value.getCustomer().getId(),
                                 Grouped.<String, ConsumptionEventWithCustomer>with(Serdes.String(), JsonSerdes.ConsumptionEventWithCustomer()))
                         // windowing by config
-                        .windowedBy(tumblingWindowProductionEvents)
+                        .windowedBy(tumblingWindowConsumptionEvents)
                         // windowed aggregation
                         .aggregate(
                                 consumptionEventsInitializer,
@@ -248,13 +250,57 @@ public class EmsTopology {
                         // suppress
                         .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().shutDownWhenFull()));
 
-        // send the merged streamProduction to the "pv_production_clean" topic
-        /*filteredProduction.to(
+
+        /**
+         * Joining Production and Consumption streams
+         */
+
+        //convert KTables to Streams
+        KStream<String, ConsumptionAggregation> aggregatedConsumptionStream = consumptionAggregationTable
+                .toStream()
+                .map(
+                        (windowedKey, value) -> {
+                            return KeyValue.pair(windowedKey.key(), value);
+                        });
+
+        KStream<String, ProductionAggregation> aggregatedProuctionStream = productionAggregationTable
+                .toStream()
+                .map(
+                        (windowedKey, value) -> {
+                            return KeyValue.pair(windowedKey.key(), value);
+                        });
+
+        aggregatedProuctionStream.print(Printed.<String, ProductionAggregation>toSysOut().withLabel("aggregatedProductionStream"));
+        aggregatedConsumptionStream.print(Printed.<String, ConsumptionAggregation>toSysOut().withLabel("aggregatedConsumptionStream"));
+
+        StreamJoined<String, ProductionAggregation, ConsumptionAggregation> joinParams =
+                StreamJoined.with(Serdes.String(), JsonSerdes.ProductionAggregation(), JsonSerdes.ConsumptionAggregation())
+                        .withKeySerde(Serdes.String())
+                        .withValueSerde(JsonSerdes.ProductionAggregation());
+
+        JoinWindows joinWindows =
+                JoinWindows
+                        .of(Duration.ofSeconds(5))
+                        .grace(Duration.ofSeconds(1));
+
+
+        KStream<String, AggregatedProductionConsumption> productionConsumptionJoined =
+                aggregatedProuctionStream.join(
+                        aggregatedConsumptionStream,
+                        (production, consumption) -> new AggregatedProductionConsumption(production, consumption),
+                        joinWindows,
+                        joinParams
+
+                );
+
+        // send the joined stream to the "pv_production_clean" topic
+        productionConsumptionJoined.to(
                 "pv_production_clean",
                 Produced.with(
-                        Serdes.ByteArray(),
+                        Serdes.String(),
+                        JsonSerdes.AggregatedProductionConsumption()
                         // registryless Avro Serde
-                        AvroSerdes.get(EntityProductionEvent.class)));*/
+                        ));
 
         return builder.build();
     }

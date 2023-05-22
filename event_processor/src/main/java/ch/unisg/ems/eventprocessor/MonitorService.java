@@ -26,9 +26,6 @@ public class MonitorService {
         this.streams = streams;
     }
 
-
-
-
     // Start the Javalin web server and configure routes
     void start() {
 
