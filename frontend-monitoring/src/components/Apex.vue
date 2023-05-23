@@ -7,9 +7,6 @@
             <h1 class="font-weight-black pb-10">
               Energy Management of customer ID: {{ customerId }}
             </h1>
-              <h4>
-                  <v-select v-model="customerId" @update:modelValue="resetGraph" :items="customers" item-value="id" item-title="name"></v-select>
-              </h4>
           </v-col>
           <v-col cols="6">
             <v-card>
@@ -20,7 +17,7 @@
                 monitor your energy production
               </v-card-subtitle>
               <div class="container">
-                <apexchart width="500" height="500" type="line" :options="options"
+                <apexchart width="500" height="500" type="line" :options="optionsProduction"
                            :series="seriesProduction"></apexchart>
               </div>
             </v-card>
@@ -34,7 +31,7 @@
                 monitor your energy consumption
               </v-card-subtitle>
               <div class="container">
-                <apexchart width="500" height="500" type="line" :options="options"
+                <apexchart width="500" height="500" type="line" :options="optionsConsumption"
                            :series="seriesConsumption"></apexchart>
               </div>
             </v-card>
@@ -50,19 +47,9 @@ export default {
   name: 'HelloWorld',
   data: () => ({
     customerId: "",
-    customers: [
-        {
-            name: 'goeldai technology',
-            id: 'fe49a4f1-eac6-4c50-9451-6c45037223ba'
-        },
-        {
-            name: 'symplaisait güven',
-            id: 'fe49a4f1-eac6-4c50-9451-6c45037223bb'
-        }
-    ],
-    options: {
+    optionsProduction: {
       chart: {
-        id: 'vuechart-example',
+        id: 'productionChart',
         animations: {
           enabled: false,
           easing: 'linear',
@@ -84,32 +71,42 @@ export default {
         curve: 'smooth'
       },
       xaxis: {
-        categories: [
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "11",
-          "12",
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "11",
-          "12"
-        ]
+        categories: ["","", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "","", ""]
+      },
+      yaxis: {
+        max: 1000,
+        min: 0,
+      },
+      legend: {
+        show: false
+      },
+    },
+    optionsConsumption: {
+      chart: {
+        id: 'consumptionChart',
+        animations: {
+          enabled: false,
+          easing: 'linear',
+          dynamicAnimation: {
+            speed: 1000
+          }
+        },
+        toolbar: {
+          show: false
+        },
+        zoom: {
+          enabled: false
+        }
+      },
+      colors: ['#ff9a00', '#ff4d00'],
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'smooth'
+      },
+      xaxis: {
+        categories: ["","", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "","", ""]
       },
       yaxis: {
         max: 1000,
@@ -128,31 +125,23 @@ export default {
       data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     }],
     seriesConsumption: [{
-      name: 'average load',
+      name: 'average consumption',
       data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     },
       {
-        name: 'max load',
+        name: 'max consumption',
         data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
       }]
   }),
   mounted() {
+    console.log("mounted - start data fetcher")
     this.customerId = localStorage.getItem("customerid");
-    setInterval(() => {
+    this.dataFetcher = setInterval(() => {
       this.fetchProductionData()
       this.fetchConsumptionData()
-    }, 1000)
+    }, 4000)
   },
   methods: {
-    getCustomerId() {
-      this.customerid = localStorage.getItem("customerid");
-    },
-    resetGraph() {
-      this.seriesProduction[0].data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      this.seriesProduction[1].data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      this.seriesConsumption[0].data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      this.seriesConsumption[1].data = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    },
     fetchProductionData() {
       const url = 'http://localhost:7071/productionMonitor'
 
@@ -168,16 +157,29 @@ export default {
             seconds = (seconds < 10 ? "0" : "") + seconds;
             let currentTimeString = hours + ":" + minutes + ":" + seconds;
 
-            let averageLoad = data[this.customerId].averageLoad;
-            this.seriesProduction[0].data.push(averageLoad.toFixed(2));
-            this.seriesProduction[0].data.shift();
+            if(data[this.customerId]){
+              let averageLoad = data[this.customerId].averageLoad;
+              this.seriesProduction[0].data.push(averageLoad.toFixed(2));
+              this.seriesProduction[0].data.shift();
 
-            let maxLoad = data[this.customerId].maxLoad;
-            this.seriesProduction[1].data.push(maxLoad.toFixed(2));
-            this.seriesProduction[1].data.shift();
+              let maxLoad = data[this.customerId].maxLoad;
+              this.seriesProduction[1].data.push(maxLoad.toFixed(2));
+              this.seriesProduction[1].data.shift();
+            } else {
+              this.seriesProduction[0].data.push(0);
+              this.seriesProduction[0].data.shift();
 
-            this.options.xaxis.categories.push(currentTimeString);
-            this.options.xaxis.categories.shift();
+              this.seriesProduction[1].data.push(0);
+              this.seriesProduction[1].data.shift();
+              console.log("Customer not found (production)")
+            }
+
+            this.optionsProduction.xaxis.categories.push(currentTimeString);
+            this.optionsProduction.xaxis.categories.shift();
+
+          })
+          .catch((err) => {
+            console.log("Error could not fetch production data: " + err)
           })
     },
       fetchConsumptionData() {
@@ -195,18 +197,34 @@ export default {
             seconds = (seconds < 10 ? "0" : "") + seconds;
             let currentTimeString = hours + ":" + minutes + ":" + seconds;
 
-            let averageLoad = data[this.customerId].averageLoad;
-            this.seriesConsumption[0].data.push(averageLoad.toFixed(2));
-            this.seriesConsumption[0].data.shift();
+            if(data[this.customerId]){
+              let averageLoad = data[this.customerId].averageLoad;
+              this.seriesConsumption[0].data.push(averageLoad.toFixed(2));
+              this.seriesConsumption[0].data.shift();
 
-            let maxLoad = data[this.customerId].maxLoad;
-            this.seriesConsumption[1].data.push(maxLoad.toFixed(2));
-            this.seriesConsumption[1].data.shift();
+              let maxLoad = data[this.customerId].maxLoad;
+              this.seriesConsumption[1].data.push(maxLoad.toFixed(2));
+              this.seriesConsumption[1].data.shift();
+            } else {
+              this.seriesConsumption[0].data.push(0);
+              this.seriesConsumption[0].data.shift();
 
-            this.options.xaxis.categories.push(currentTimeString);
-            this.options.xaxis.categories.shift();
+              this.seriesConsumption[1].data.push(0);
+              this.seriesConsumption[1].data.shift();
+              console.log("Customer not found (consumption)")
+            }
+
+            this.optionsConsumption.xaxis.categories.push(currentTimeString);
+            this.optionsConsumption.xaxis.categories.shift();
+          })
+          .catch((err) => {
+            console.log("Error could not fetch consumption data: " + err)
           })
     }
+  },
+  beforeUnmount(){
+    console.log("Unmounting - clearing interval")
+    clearInterval(this.dataFetcher);
   }
 }
 </script>
