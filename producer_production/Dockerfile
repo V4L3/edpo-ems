@@ -1,4 +1,4 @@
-FROM openjdk:17-alpine
+FROM openjdk:18-alpine
 VOLUME /tmp
 ADD target/*.jar app.jar
 COPY src/main/resources/loadprofiles app/loadprofiles

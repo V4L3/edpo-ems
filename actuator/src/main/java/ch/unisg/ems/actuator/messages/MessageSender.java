@@ -1,5 +1,6 @@
 package ch.unisg.ems.actuator.messages;
 
+import ch.unisg.ems.actuator.model.ConsumerShutdownRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -9,8 +10,6 @@ import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-
 /**
  * Helper to send messages, currently nailed to Kafka, but could also send via AMQP (e.g. RabbitMQ) or
  * any other transport easily
@@ -18,10 +17,10 @@ import java.nio.charset.StandardCharsets;
 @Component
 public class MessageSender {
 
-    public static final String TOPIC_NAME = "offer-received-topic";
+    public static final String TOPIC_NAME = "actuators";
 
     @Autowired
-    private KafkaTemplate<String, byte[]> kafkaTemplate;
+    private KafkaTemplate<String, String> kafkaTemplate;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -31,31 +30,14 @@ public class MessageSender {
         return TopicBuilder.name(TOPIC_NAME).partitions(1).replicas(1).build();
     }
 
-    public void send(Message<?> m) {
+    public void send(Message<?> message) {
         try {
             // avoid too much magic and transform ourselves
-            String jsonMessage = objectMapper.writeValueAsString(m);
+            String jsonMessage = objectMapper.writeValueAsString(message);
 
-            byte[] messageBytes = jsonMessage.getBytes(StandardCharsets.UTF_8);
-            ProducerRecord<String, byte[]> record = new ProducerRecord<String, byte[]>("ems-sales", messageBytes);
-            record.headers().add("type", m.getType().getBytes());
-
-            // and send it
-            kafkaTemplate.send(record);
-        } catch (Exception e) {
-            throw new RuntimeException("Could not transform and send message: "+ e.getMessage(), e);
-        }
-    }
-
-    public void send(Message<?> m, String topic) {
-        try {
-            // avoid too much magic and transform ourselves
-            String jsonMessage = objectMapper.writeValueAsString(m);
-
-            byte[] messageBytes = jsonMessage.getBytes(StandardCharsets.UTF_8);
-            ProducerRecord<String, byte[]> record = new ProducerRecord<String, byte[]>(topic, messageBytes);
-            record.headers().add("type", m.getType().getBytes());
-
+            // byte[] messageBytes = jsonMessage.getBytes(StandardCharsets.UTF_8);
+            ProducerRecord<String, String> record = new ProducerRecord<String, String>("actuators", jsonMessage);
+            // record.headers().add("type", m.getBytes());
             // and send it
             kafkaTemplate.send(record);
         } catch (Exception e) {

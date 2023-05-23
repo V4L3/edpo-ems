@@ -22,7 +22,7 @@ public class ProducerConsumption {
     private final static String delimiter = ";";
 
     public static void main(String[] args) throws Exception {
-        String dataset = "";
+        String dataset;
         // if dataset is provided as run argument use this dataset, otherwise use default
         if (args.length > 0) {
             dataset = args[0];
