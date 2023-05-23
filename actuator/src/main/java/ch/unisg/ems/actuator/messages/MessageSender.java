@@ -1,6 +1,5 @@
 package ch.unisg.ems.actuator.messages;
 
-import ch.unisg.ems.actuator.model.ConsumerShutdownRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -9,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import java.nio.charset.StandardCharsets;
+
 
 /**
  * Helper to send messages, currently nailed to Kafka, but could also send via AMQP (e.g. RabbitMQ) or
@@ -20,7 +21,7 @@ public class MessageSender {
     public static final String TOPIC_NAME = "actuators";
 
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+    private KafkaTemplate<String, byte[]> kafkaTemplate;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -35,8 +36,8 @@ public class MessageSender {
             // avoid too much magic and transform ourselves
             String jsonMessage = objectMapper.writeValueAsString(message);
 
-            // byte[] messageBytes = jsonMessage.getBytes(StandardCharsets.UTF_8);
-            ProducerRecord<String, String> record = new ProducerRecord<String, String>("actuators", jsonMessage);
+            byte[] messageBytes = jsonMessage.getBytes(StandardCharsets.UTF_8);
+            ProducerRecord<String, byte[]> record = new ProducerRecord<String, byte[]>("actuators", messageBytes);
             // record.headers().add("type", m.getBytes());
             // and send it
             kafkaTemplate.send(record);
