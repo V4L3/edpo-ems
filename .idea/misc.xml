@@ -13,6 +13,7 @@
         <option value="$PROJECT_DIR$/producer_consumation/pom.xml" />
         <option value="$PROJECT_DIR$/event_processor/pom.xml" />
         <option value="$PROJECT_DIR$/actuator/pom.xml" />
+        <option value="$PROJECT_DIR$/producer_consumption/pom.xml" />
       </list>
     </option>
   </component>

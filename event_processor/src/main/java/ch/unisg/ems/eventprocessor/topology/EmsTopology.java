@@ -5,6 +5,7 @@ import ch.unisg.ems.eventprocessor.model.Customer;
 import ch.unisg.ems.eventprocessor.model.aggregations.ConsumptionAggregation;
 import ch.unisg.ems.eventprocessor.model.aggregations.ProductionAggregation;
 import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumption;
+import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumptionWithCustomer;
 import ch.unisg.ems.eventprocessor.model.join.ConsumptionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.model.join.ProductionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.serialization.ConsumptionEvent;
@@ -158,29 +159,6 @@ public class EmsTopology {
                 contentFilteredConsumptionEvents.filterNot(
                         (key, event) -> event.getLoad() > MAX_CONSUMPTION_LOAD);*/
 
-        /**
-         * Join customer information to Production and Consumption streams
-         */
-        /*COMMENTED THIS BECAUSE JOINING WITH CUSTOMERS DOES NOT WORK YET*/
-        KeyValueMapper<byte[], ProductionEvent, String> keyMapperProduction =
-                (leftKey, entityProductionEvent) -> String.valueOf(entityProductionEvent.getCustomerId());
-
-        // join the productionevent stream to the customers global ktable
-        ValueJoiner<ProductionEvent, Customer, ProductionEventWithCustomer> customerJoinerProduction =
-                (entityProductionEvent, customer) -> new ProductionEventWithCustomer(entityProductionEvent, customer);
-        KStream<byte[], ProductionEventWithCustomer> productionWithCustomer = filteredProduction.join(customerTable, keyMapperProduction, customerJoinerProduction);
-        productionWithCustomer.print(Printed.<byte[], ProductionEventWithCustomer>toSysOut().withLabel("with-customer"));
-
-
-        KeyValueMapper<byte[], ConsumptionEvent, String> keyMapperConsumption =
-                (leftKey, entityConsumptionEvent) -> String.valueOf(entityConsumptionEvent.getCustomerId());
-
-        // join the consumption event stream to the customers global ktable
-        ValueJoiner<ConsumptionEvent, Customer, ConsumptionEventWithCustomer> customerJoinerConsumption =
-                (entityConsumptionEvent, customer) -> new ConsumptionEventWithCustomer(entityConsumptionEvent, customer);
-        KStream<byte[], ConsumptionEventWithCustomer> consumptionWithCustomer = filteredConsumption.join(customerTable, keyMapperConsumption, customerJoinerConsumption);
-        consumptionWithCustomer.print(Printed.<byte[], ConsumptionEventWithCustomer>toSysOut().withLabel("with-customer"));
-
 
         /**
          * Stateful processing for joined production stream
@@ -205,10 +183,10 @@ public class EmsTopology {
         // aggregation: average load, max load, count
         Initializer<ConsumptionAggregation> consumptionEventsInitializer = () -> new ConsumptionAggregation(0,0, 0);
 
-        Aggregator<String, ConsumptionEventWithCustomer, ConsumptionAggregation> consumptionEventAggregator = (key, consumption, consumptionAggregation) -> {
+        Aggregator<String, ConsumptionEvent, ConsumptionAggregation> consumptionEventAggregator = (key, consumption, consumptionAggregation) -> {
             int newConsumptionEventCount = consumptionAggregation.getCount() + 1;
-            double newMaxLoad = Math.max(consumptionAggregation.getMaxLoad(), consumption.getEntityConsumptionEvent().getLoad());
-            double newAverageLoad = (consumptionAggregation.getAverageLoad() * (newConsumptionEventCount - 1) + consumption.getEntityConsumptionEvent().getLoad()) / newConsumptionEventCount;
+            double newMaxLoad = Math.max(consumptionAggregation.getMaxLoad(), consumption.getLoad());
+            double newAverageLoad = (consumptionAggregation.getAverageLoad() * (newConsumptionEventCount - 1) + consumption.getLoad()) / newConsumptionEventCount;
             return new ConsumptionAggregation(newAverageLoad, newMaxLoad, newConsumptionEventCount);
         };
 
@@ -233,10 +211,10 @@ public class EmsTopology {
 
         // Group consumption events by customer id, Window by tumblingWindow, Aggregate, Materialize, suppress
         KTable<Windowed<String>, ConsumptionAggregation> consumptionAggregationTable =
-                consumptionWithCustomer
+                filteredConsumption
                         // group by customer ID
-                        .groupBy((key, value) -> value.getCustomer().getId(),
-                                Grouped.<String, ConsumptionEventWithCustomer>with(Serdes.String(), JsonSerdes.ConsumptionEventWithCustomer()))
+                        .groupBy((key, value) -> value.getCustomerId(),
+                                Grouped.<String, ConsumptionEvent>with(Serdes.String(), JsonSerdes.ConsumptionEvent()))
                         // windowing by config
                         .windowedBy(tumblingWindowConsumptionEvents)
                         // windowed aggregation
@@ -253,6 +231,7 @@ public class EmsTopology {
 
         /**
          * Joining Production and Consumption streams
+         * stream remains keyed by customer id
          */
 
         //convert KTables to Streams
@@ -263,14 +242,14 @@ public class EmsTopology {
                             return KeyValue.pair(windowedKey.key(), value);
                         });
 
-        KStream<String, ProductionAggregation> aggregatedProuctionStream = productionAggregationTable
+        KStream<String, ProductionAggregation> aggregatedProductionStream = productionAggregationTable
                 .toStream()
                 .map(
                         (windowedKey, value) -> {
                             return KeyValue.pair(windowedKey.key(), value);
                         });
 
-        aggregatedProuctionStream.print(Printed.<String, ProductionAggregation>toSysOut().withLabel("aggregatedProductionStream"));
+        aggregatedProductionStream.print(Printed.<String, ProductionAggregation>toSysOut().withLabel("aggregatedProductionStream"));
         aggregatedConsumptionStream.print(Printed.<String, ConsumptionAggregation>toSysOut().withLabel("aggregatedConsumptionStream"));
 
         StreamJoined<String, ProductionAggregation, ConsumptionAggregation> joinParams =
@@ -285,22 +264,45 @@ public class EmsTopology {
 
 
         KStream<String, AggregatedProductionConsumption> productionConsumptionJoined =
-                aggregatedProuctionStream.join(
+                aggregatedProductionStream.join(
                         aggregatedConsumptionStream,
                         (production, consumption) -> new AggregatedProductionConsumption(production, consumption),
                         joinWindows,
                         joinParams
-
                 );
 
+        productionConsumptionJoined.print(Printed.<String, AggregatedProductionConsumption>toSysOut().withLabel("aggregatedConsumptionProductionStream"));
+
+
+        /**
+         * Join customer information to the joined stream
+         */
+
+        KeyValueMapper<String, AggregatedProductionConsumption, String> keyMapper =
+                (leftKey, event) -> leftKey; //String.valueOf(event.getConsumptionAggregation().getCustomerId());
+
+        // join the productionevent stream to the customers global ktable
+        ValueJoiner<AggregatedProductionConsumption, Customer, AggregatedProductionConsumptionWithCustomer> customerJoiner =
+                (entityProductionEvent, customer) -> new AggregatedProductionConsumptionWithCustomer(entityProductionEvent, customer);
+        KStream<String, AggregatedProductionConsumptionWithCustomer> aggregatedProductionConsumptionWithCustomerStream = productionConsumptionJoined.leftJoin(customerTable, keyMapper, customerJoiner);
+        aggregatedProductionConsumptionWithCustomerStream.print(Printed.<String, AggregatedProductionConsumptionWithCustomer>toSysOut().withLabel("with-customer"));
+
         // send the joined stream to the "pv_production_clean" topic
-        productionConsumptionJoined.to(
-                "pv_production_clean",
+        /*productionConsumptionJoined.to(
+                "ems_data_by_customer",
                 Produced.with(
                         Serdes.String(),
                         JsonSerdes.AggregatedProductionConsumption()
-                        // registryless Avro Serde
-                        ));
+                        ));*/
+
+
+        aggregatedProductionConsumptionWithCustomerStream.to(
+                "ems_data_by_customer",
+                Produced.with(
+                        Serdes.String(),
+                        JsonSerdes.AggregatedProductionConsumptionWithCustomer()
+                ));
+
 
         return builder.build();
     }

@@ -1,4 +1,4 @@
-1|{"customerId": "fe49a4f1-eac6-4c50-9451-6c45037223ba", "name": "goeldi technology", "isActive": true}
-2|{"customerId": "fe49a4f1-eac6-4c50-9451-6c45037223bb", "name": "symplysite güven", "isActive": true}
-3|{"customerId": "fe49a4f1-eac6-4c50-9451-6c45037223bc", "name": "berger consulting", "isActive": true}
-4|{"customerId": "fe49a4f1-eac6-4c50-9451-6c45037223bd", "name": "nAItter AI holding ag", "isActive": false}
+fe49a4f1-eac6-4c50-9451-6c45037223ba|{"customerId": "fe49a4f1-eac6-4c50-9451-6c45037223ba", "name": "goeldi technology", "isActive": true}
+fe49a4f1-eac6-4c50-9451-6c45037223bb|{"customerId": "fe49a4f1-eac6-4c50-9451-6c45037223bb", "name": "symplysite güven", "isActive": true}
+fe49a4f1-eac6-4c50-9451-6c45037223bc|{"customerId": "fe49a4f1-eac6-4c50-9451-6c45037223bc", "name": "berger consulting", "isActive": true}
+fe49a4f1-eac6-4c50-9451-6c45037223bd|{"customerId": "fe49a4f1-eac6-4c50-9451-6c45037223bd", "name": "nAItter AI holding ag", "isActive": false}

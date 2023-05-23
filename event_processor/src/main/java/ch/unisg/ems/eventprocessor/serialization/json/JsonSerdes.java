@@ -4,8 +4,10 @@ import ch.unisg.ems.eventprocessor.model.Customer;
 import ch.unisg.ems.eventprocessor.model.aggregations.ConsumptionAggregation;
 import ch.unisg.ems.eventprocessor.model.aggregations.ProductionAggregation;
 import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumption;
+import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumptionWithCustomer;
 import ch.unisg.ems.eventprocessor.model.join.ConsumptionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.model.join.ProductionEventWithCustomer;
+import ch.unisg.ems.eventprocessor.serialization.ConsumptionEvent;
 import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -47,9 +49,20 @@ public class JsonSerdes {
         return Serdes.serdeFrom(serializer, deserializer);
     }
 
+    public static Serde<AggregatedProductionConsumptionWithCustomer> AggregatedProductionConsumptionWithCustomer() {
+        JsonSerializer<AggregatedProductionConsumptionWithCustomer> serializer = new JsonSerializer<>();
+        JsonDeserializer<AggregatedProductionConsumptionWithCustomer> deserializer = new JsonDeserializer<>(AggregatedProductionConsumptionWithCustomer.class);
+        return Serdes.serdeFrom(serializer, deserializer);
+    }
+
     public static Serde<ProductionEvent> ProductionEvent() {
         JsonSerializer<ProductionEvent> serializer = new JsonSerializer<>();
         JsonDeserializer<ProductionEvent> deserializer = new JsonDeserializer<>(ProductionEvent.class);
+        return Serdes.serdeFrom(serializer, deserializer);
+    }
+    public static Serde<ConsumptionEvent> ConsumptionEvent() {
+        JsonSerializer<ConsumptionEvent> serializer = new JsonSerializer<>();
+        JsonDeserializer<ConsumptionEvent> deserializer = new JsonDeserializer<>(ConsumptionEvent.class);
         return Serdes.serdeFrom(serializer, deserializer);
     }
 

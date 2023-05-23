@@ -1,5 +1,6 @@
 package ch.unisg.ems.eventprocessor;
 
+import ch.unisg.ems.eventprocessor.model.aggregations.ConsumptionAggregation;
 import ch.unisg.ems.eventprocessor.model.aggregations.ProductionAggregation;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -40,6 +41,7 @@ public class MonitorService {
 
         // Define a route for querying in the key-value store
         app.get("/productionMonitor", this::getProductionAggregations);
+        app.get("/consumptionMonitor", this::getConsumptionAggregations);
         app.get("/productionEvents", this::getProductionEvents);
         /*app.get("/fixationClickMonitor", this::getFixationClickCount);*/
 
@@ -58,9 +60,28 @@ public class MonitorService {
         KeyValueIterator<Windowed<String>, ProductionAggregation> range = store.all();
         while (range.hasNext()) {
             KeyValue<Windowed<String>, ProductionAggregation> next = range.next();
-            String aoi = next.key.key();
-            ProductionAggregation fixationStats = next.value;
-            monitor.put(aoi, fixationStats);
+            String id = next.key.key();
+            ProductionAggregation productionAggregation = next.value;
+            monitor.put(id, productionAggregation);
+        }
+        range.close();
+        ctx.header("Access-Control-Allow-Origin", "*");
+        ctx.header("Access-Control-Allow-Credentials", "true");
+        ctx.json(monitor);
+    }
+    void getConsumptionAggregations(Context ctx) {
+        Map<String, ConsumptionAggregation> monitor = new HashMap<>();
+
+        ReadOnlyWindowStore<String, ConsumptionAggregation> store =
+                streams.store(StoreQueryParameters.fromNameAndType("consumptionAggregations", QueryableStoreTypes.windowStore()));
+
+
+        KeyValueIterator<Windowed<String>, ConsumptionAggregation> range = store.all();
+        while (range.hasNext()) {
+            KeyValue<Windowed<String>, ConsumptionAggregation> next = range.next();
+            String id = next.key.key();
+            ConsumptionAggregation consumptionAggregation = next.value;
+            monitor.put(id, consumptionAggregation);
         }
         range.close();
         ctx.header("Access-Control-Allow-Origin", "*");

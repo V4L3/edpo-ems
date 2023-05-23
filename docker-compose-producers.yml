@@ -5,7 +5,7 @@ services:
       context: ./producer_production
     image: edpo-ems-producer-production
     environment:
-      JAVA_OPTS: "2022_Production_alt.csv"
+      JAVA_OPTS: "2022_Production2.csv"
 
   producerB:
     image: edpo-ems-producer-production
@@ -14,15 +14,15 @@ services:
 
   consumerA:
     build:
-      context: ./producer_consumation
-    image: edpo-ems-producer-consumation
+      context: ./producer_consumption
+    image: edpo-ems-producer-consumption
     environment:
-      JAVA_OPTS: "2022_Consumation.csv"
+      JAVA_OPTS: "2022_Consumption.csv"
 
   consumerB:
-    image: edpo-ems-producer-consumation
+    image: edpo-ems-producer-consumption
     environment:
-      JAVA_OPTS: "2022_Consumation_alt.csv"
+      JAVA_OPTS: "2022_Consumption2.csv"
 
 networks:
   ems:

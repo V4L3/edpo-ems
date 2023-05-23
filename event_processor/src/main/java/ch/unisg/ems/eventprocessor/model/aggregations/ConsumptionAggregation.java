@@ -9,6 +9,8 @@ public class ConsumptionAggregation {
     private double maxLoad;
     @SerializedName("Count")
     private int count;
+
+
     public ConsumptionAggregation(double averageLoad, double maxLoad, int count) {
         this.averageLoad = averageLoad;
         this.maxLoad = maxLoad;
