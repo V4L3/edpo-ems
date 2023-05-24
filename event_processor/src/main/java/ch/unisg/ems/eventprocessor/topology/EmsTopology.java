@@ -25,6 +25,7 @@ import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.WindowStore;
 
 import java.time.Duration;
+import java.util.HashMap;
 
 public class EmsTopology {
     private static final Double MAX_PRODUCTION_LOAD = 100.0;
@@ -166,15 +167,43 @@ public class EmsTopology {
          */
         // Window config for production events
         TimeWindows tumblingWindowProductionEvents =
-                TimeWindows.of(Duration.ofSeconds(10)).grace(Duration.ofSeconds(1));
+                TimeWindows.of(Duration.ofSeconds(4)).grace(Duration.ofSeconds(1));
         // aggregation: average load, max load, count
-        Initializer<ProductionAggregation> productionEventsInitializer = () -> new ProductionAggregation(0,0, 0);
+        Initializer<ProductionAggregation> productionEventsInitializer = () -> new ProductionAggregation(0,0, 0, new HashMap<>(), new HashMap<>());
 
         Aggregator<String, ProductionEvent, ProductionAggregation> productionEventAggregator = (key, production, productionAggregation) -> {
             int newProductionEventCount = productionAggregation.getCount() + 1;
             double newMaxLoad = Math.max(productionAggregation.getMaxLoad(), production.getLoad());
-            double newAverageLoad = (productionAggregation.getAverageLoad() * (newProductionEventCount - 1) + production.getLoad()) / newProductionEventCount;
-            return new ProductionAggregation(newAverageLoad, newMaxLoad, newProductionEventCount);
+            // add pv to list - JANKY
+            if(productionAggregation.getPvList() == null) {
+                productionAggregation.setPvList(new HashMap<>());
+            }
+            if(productionAggregation.getPvCounts() == null) {
+                productionAggregation.setPvCounts(new HashMap<>());
+            }
+            HashMap<String, Double> newPvList = productionAggregation.getPvList();
+            HashMap<String, Integer> pvCounts = productionAggregation.getPvCounts();
+            if (newPvList.containsKey(production.getPvId())) {
+                double currentLoad = newPvList.get(production.getPvId());
+                int currentCount = pvCounts.get(production.getPvId());
+                double updatedLoad = ((currentLoad * currentCount) + production.getLoad()) / (currentCount + 1);
+                int updatedCount = currentCount + 1;
+                newPvList.put(production.getPvId(), updatedLoad);
+                pvCounts.put(production.getPvId(), updatedCount);
+            } else {
+                newPvList.put(production.getPvId(), production.getLoad());
+                pvCounts.put(production.getPvId(), 1);
+            }
+
+            double totalLoad = 0.0;
+            int totalPvCount = newPvList.size();
+
+            for (double load : newPvList.values()) {
+                totalLoad += load;
+            }
+            double newAverageLoad = totalLoad;
+
+            return new ProductionAggregation(newAverageLoad, newMaxLoad, newProductionEventCount, newPvList, pvCounts);
         };
 
         // Window config for consumption events

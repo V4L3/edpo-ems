@@ -16,11 +16,36 @@
               <v-card-subtitle>
                 monitor your energy production
               </v-card-subtitle>
+              <v-dialog
+                  v-model="detail"
+                  activator="parent"
+                  width="auto"
+              >
+
+                <v-card>
+                  <v-card-text>
+                    <v-container>
+                    <div class="detail-graph" v-for="detail in seriesProductionDetail">
+                      <v-card>
+                        <v-card-title>
+                          PV number: {{ detail.name }}
+                        </v-card-title>
+                      <apexchart width="500" height="500" type="line" :options="optionsProductionDetail" :series="[detail]"></apexchart>
+                      </v-card>
+                    </div>
+                    </v-container>
+                  </v-card-text>
+                  <v-card-actions>
+                    <v-btn color="primary" block @click="detail = false">Close Detail</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-dialog>
               <div class="container">
                 <apexchart width="500" height="500" type="line" :options="optionsProduction"
                            :series="seriesProduction"></apexchart>
               </div>
             </v-card>
+            <v-btn color="primary" @click="detail = true">Show Detail</v-btn>
           </v-col>
           <v-col cols="6">
             <v-card>
@@ -47,6 +72,7 @@ export default {
   name: 'HelloWorld',
   data: () => ({
     customerId: "",
+    detail: false,
     optionsProduction: {
       chart: {
         id: 'productionChart',
@@ -75,6 +101,40 @@ export default {
       },
       yaxis: {
         max: 1000,
+        min: 0,
+      },
+      legend: {
+        show: false
+      },
+    },
+    optionsProductionDetail: {
+      chart: {
+        id: 'productionChartDetail',
+        animations: {
+          enabled: false,
+          easing: 'linear',
+          dynamicAnimation: {
+            speed: 1000
+          }
+        },
+        toolbar: {
+          show: false
+        },
+        zoom: {
+          enabled: false
+        }
+      },
+      dataLabels: {
+        enabled: false
+      },
+      stroke: {
+        curve: 'smooth'
+      },
+      xaxis: {
+        categories: ["","", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "","", ""]
+      },
+      yaxis: {
+        max: 100,
         min: 0,
       },
       legend: {
@@ -124,6 +184,7 @@ export default {
       name: 'max load',
       data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     }],
+    seriesProductionDetail: [],
     seriesConsumption: [{
       name: 'average consumption',
       data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -148,6 +209,7 @@ export default {
       fetch(url)
           .then(response => response.json())
           .then(data => {
+            console.log(data)
             let currentTime = new Date();
             let hours = currentTime.getHours();
             let minutes = currentTime.getMinutes();
@@ -165,6 +227,37 @@ export default {
               let maxLoad = data[this.customerId].maxLoad;
               this.seriesProduction[1].data.push(maxLoad.toFixed(2));
               this.seriesProduction[1].data.shift();
+
+              Object.keys(data[this.customerId].pvList).forEach((pvKey) => {
+                const name = pvKey;
+                const value = data[this.customerId].pvList[pvKey];
+
+                // Find the corresponding series entry in the seriesConsumption array
+                let seriesEntry = this.seriesProductionDetail.find((entry) => entry.name === name);
+
+                if (!seriesEntry) {
+                  // If the series entry doesn't exist, create a new one
+                  seriesEntry = {
+                    name: name,
+                    data: [],
+                  };
+                  this.seriesProductionDetail.push(seriesEntry);
+                }
+
+                // Add the current value to the data array
+                seriesEntry.data.push(value);
+
+                // Remove the oldest value if the data array exceeds 24 elements
+                if (seriesEntry.data.length > 24) {
+                  seriesEntry.data.shift();
+                }
+
+                // Fill with 0 if the data array has less than 24 elements
+                while (seriesEntry.data.length < 24) {
+                  seriesEntry.data.unshift(0);
+                }
+              });
+
             } else {
               this.seriesProduction[0].data.push(0);
               this.seriesProduction[0].data.shift();
