@@ -6,8 +6,6 @@ import ch.unisg.ems.eventprocessor.model.aggregations.ConsumptionAggregation;
 import ch.unisg.ems.eventprocessor.model.aggregations.ProductionAggregation;
 import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumption;
 import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumptionWithCustomer;
-import ch.unisg.ems.eventprocessor.model.join.ConsumptionEventWithCustomer;
-import ch.unisg.ems.eventprocessor.model.join.ProductionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.serialization.ConsumptionEvent;
 import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
 import ch.unisg.ems.eventprocessor.serialization.json.ConsumptionEventSerdes;
@@ -130,37 +128,6 @@ public class EmsTopology {
                         (key, event) -> event.getLoad() < MIN_CONSUMPTION_LOAD
                 );
 
-        // TO TEST OUT JAVALIN - TABLE WITH PRODUCTION EVENTS COUNT
-        // Window config for production events
-        TimeWindows tumblingWindowClicks =
-                TimeWindows.of(Duration.ofSeconds(5)).grace(Duration.ofSeconds(1));
-
-        //Group clicks by AOI, Window by tumblingWindowClicks, Aggregage:count, Materialize, suppress
-        KTable<Windowed<String>, Long> productionEvents =
-                filteredProduction
-                        // group by Customer ID
-                        .groupBy((key, value) -> value.getCustomerId(),
-                                Grouped.<String, ProductionEvent>with(Serdes.String(), JsonSerdes.ProductionEvent()))
-                        // windowing by config
-                        .windowedBy(tumblingWindowClicks)
-                        // windowed aggregation
-                        .count(Materialized.as("productionEvents"))
-                        /*.aggregate(
-                                productionEventsInitializer,
-                                productionEventAggregator,
-                                Materialized.<String, ProductionAggregation, WindowStore<Bytes, byte[]>>as("productionEvents")
-                                        .withKeySerde(Serdes.String())
-                                        .withValueSerde(JsonSerdes.ProductionAggregation())
-                        )*/
-                        // suppress
-                        .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().shutDownWhenFull()));
-
-        // filter out events with a load greater than 100 kW (measurement error since the pv system is only 100 kW)
-        /*KStream<byte[], EntityConsumptionEvent> filteredConsumption =
-                contentFilteredConsumptionEvents.filterNot(
-                        (key, event) -> event.getLoad() > MAX_CONSUMPTION_LOAD);*/
-
-
         /**
          * Stateful processing for joined production stream
          * group by customer and aggregate average load over tumbling window
@@ -173,7 +140,6 @@ public class EmsTopology {
 
         Aggregator<String, ProductionEvent, ProductionAggregation> productionEventAggregator = (key, production, productionAggregation) -> {
             int newProductionEventCount = productionAggregation.getCount() + 1;
-            double newMaxLoad = Math.max(productionAggregation.getMaxLoad(), production.getLoad());
             // add pv to list - JANKY
             if(productionAggregation.getPvList() == null) {
                 productionAggregation.setPvList(new HashMap<>());
@@ -202,6 +168,7 @@ public class EmsTopology {
                 totalLoad += load;
             }
             double newAverageLoad = totalLoad;
+            double newMaxLoad = totalLoad / (double) newPvList.size();
 
             return new ProductionAggregation(newAverageLoad, newMaxLoad, newProductionEventCount, newPvList, pvCounts);
         };

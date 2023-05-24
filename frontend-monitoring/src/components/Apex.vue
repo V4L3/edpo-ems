@@ -58,15 +58,31 @@
         <div>
             <v-dialog
                     v-model="detail"
-                    max-width="1060px"
+                    fullscreen
+                    :scrim="false"
             >
 
-                <v-container>
                     <v-card loading="fetchingData">
+                      <v-toolbar
+                          dark
+                          color="primary"
+                      >
+                        <v-btn
+                            icon
+                            dark
+                            @click="detail = false"
+                        >
+                          <v-icon>mdi-close</v-icon>
+                        </v-btn>
+                        <v-toolbar-title>
+                          Energy production by producer</v-toolbar-title>
+                        <v-spacer></v-spacer>
+                        <v-toolbar-items>
+                        </v-toolbar-items>
+                      </v-toolbar>
                         <v-progress-linear color="primary" indeterminate></v-progress-linear>
-                        <v-card-title>
-                            Energy production by producer
-                        </v-card-title>
+                      <v-spacer></v-spacer>
+
                         <v-card-subtitle>
                             Energy production by production device like photovoltaic plants. Production in kW.
                         </v-card-subtitle>
@@ -77,7 +93,7 @@
                                         Energy Producer ID: {{ detail.name }}
                                     </h3>
                                     <apexchart width="100%" height="500" type="line"
-                                               :options="optionsProductionDetail"
+                                               :options="optionsProduction"
                                                :series="[detail]"></apexchart>
                                 </v-col>
                             </v-row>
@@ -86,7 +102,6 @@
                             <v-btn class="mt-4" color="primary" block @click="detail = false">Close Detail</v-btn>
                         </v-card-actions>
                     </v-card>
-                </v-container>
             </v-dialog>
         </div>
     </v-container>
@@ -126,7 +141,7 @@ export default {
                 categories: ["", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]
             },
             yaxis: {
-                max: 1000,
+                max: 500,
                 min: 0,
             },
             legend: {
@@ -203,11 +218,11 @@ export default {
             },
         },
         seriesProduction: [{
-            name: 'average load',
+            name: 'total load',
             data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         },
             {
-                name: 'max load',
+                name: 'average load',
                 data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
             }],
         seriesProductionDetail: [],
@@ -271,7 +286,7 @@ export default {
                             }
 
                             // Add the current value to the data array
-                            seriesEntry.data.push(value);
+                            seriesEntry.data.push(value.toFixed(2));
 
                             // Remove the oldest value if the data array exceeds 24 elements
                             if (seriesEntry.data.length > 24) {
