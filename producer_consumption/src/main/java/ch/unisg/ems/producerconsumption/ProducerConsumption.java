@@ -12,7 +12,6 @@ import java.util.*;
 public class ProducerConsumption {
 
     private final static String TOPIC_NAME = "energy_consumption";
-    private final static String BOOTSTRAP_SERVERS = "localhost:9092";
 
     // dataset path, csv file has to be in resources directory
     private final static String LOAD_PROFILE_DIRECTORY = "loadprofiles";
@@ -36,7 +35,7 @@ public class ProducerConsumption {
         String filePath = Resources.getResource(LOAD_PROFILE_DIRECTORY + "/" + dataset).getFile();
 
         // replace file path to work with docker container
-        filePath = filePath.replace("file:/app.jar!/", "/app/");
+        filePath = filePath.replaceAll("file:\\/.*jar!\\/", "/");
 
         // read csv dataset to arraylist
         System.out.println("resources path: " + filePath);

@@ -12,8 +12,6 @@ import java.util.Date;
 public class ProducerProduction {
 
     private final static String TOPIC_NAME = "pv_production";
-    private final static String BOOTSTRAP_SERVERS = "localhost:9092";
-
     private final static String LOAD_PROFILE_DIRECTORY = "loadprofiles";
     // dataset path, csv file has to be in resources directory
     private final static String DEFAULT_CSV_DATASET = "2022_Production.csv";
@@ -37,7 +35,7 @@ public class ProducerProduction {
         String filePath = Resources.getResource(LOAD_PROFILE_DIRECTORY + "/" + dataset).getFile();
 
         // replace file path to work with docker container
-        filePath = filePath.replace("file:/app.jar!/", "/app/");
+        filePath = filePath.replaceAll("file:\\/.*jar!\\/", "/");
 
         System.out.println("resources path: " + filePath);
         try (CSVReader csvReader = new CSVReader(new FileReader(filePath))) {
@@ -81,7 +79,7 @@ public class ProducerProduction {
             ProducerRecord<byte[], String> record = new ProducerRecord<>(TOPIC_NAME, key, message);
             producer.send(record);
             try {
-                Thread.sleep(500);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

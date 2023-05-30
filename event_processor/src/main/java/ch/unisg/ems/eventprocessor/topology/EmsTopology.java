@@ -6,8 +6,6 @@ import ch.unisg.ems.eventprocessor.model.aggregations.ConsumptionAggregation;
 import ch.unisg.ems.eventprocessor.model.aggregations.ProductionAggregation;
 import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumption;
 import ch.unisg.ems.eventprocessor.model.join.AggregatedProductionConsumptionWithCustomer;
-import ch.unisg.ems.eventprocessor.model.join.ConsumptionEventWithCustomer;
-import ch.unisg.ems.eventprocessor.model.join.ProductionEventWithCustomer;
 import ch.unisg.ems.eventprocessor.serialization.ConsumptionEvent;
 import ch.unisg.ems.eventprocessor.serialization.ProductionEvent;
 import ch.unisg.ems.eventprocessor.serialization.json.ConsumptionEventSerdes;
@@ -25,6 +23,7 @@ import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.state.WindowStore;
 
 import java.time.Duration;
+import java.util.HashMap;
 
 public class EmsTopology {
     private static final Double MAX_PRODUCTION_LOAD = 100.0;
@@ -129,52 +128,49 @@ public class EmsTopology {
                         (key, event) -> event.getLoad() < MIN_CONSUMPTION_LOAD
                 );
 
-        // TO TEST OUT JAVALIN - TABLE WITH PRODUCTION EVENTS COUNT
-        // Window config for production events
-        TimeWindows tumblingWindowClicks =
-                TimeWindows.of(Duration.ofSeconds(5)).grace(Duration.ofSeconds(1));
-
-        //Group clicks by AOI, Window by tumblingWindowClicks, Aggregage:count, Materialize, suppress
-        KTable<Windowed<String>, Long> productionEvents =
-                filteredProduction
-                        // group by Customer ID
-                        .groupBy((key, value) -> value.getCustomerId(),
-                                Grouped.<String, ProductionEvent>with(Serdes.String(), JsonSerdes.ProductionEvent()))
-                        // windowing by config
-                        .windowedBy(tumblingWindowClicks)
-                        // windowed aggregation
-                        .count(Materialized.as("productionEvents"))
-                        /*.aggregate(
-                                productionEventsInitializer,
-                                productionEventAggregator,
-                                Materialized.<String, ProductionAggregation, WindowStore<Bytes, byte[]>>as("productionEvents")
-                                        .withKeySerde(Serdes.String())
-                                        .withValueSerde(JsonSerdes.ProductionAggregation())
-                        )*/
-                        // suppress
-                        .suppress(Suppressed.untilWindowCloses(Suppressed.BufferConfig.unbounded().shutDownWhenFull()));
-
-        // filter out events with a load greater than 100 kW (measurement error since the pv system is only 100 kW)
-        /*KStream<byte[], EntityConsumptionEvent> filteredConsumption =
-                contentFilteredConsumptionEvents.filterNot(
-                        (key, event) -> event.getLoad() > MAX_CONSUMPTION_LOAD);*/
-
-
         /**
          * Stateful processing for joined production stream
          * group by customer and aggregate average load over tumbling window
          */
         // Window config for production events
         TimeWindows tumblingWindowProductionEvents =
-                TimeWindows.of(Duration.ofSeconds(10)).grace(Duration.ofSeconds(1));
+                TimeWindows.of(Duration.ofSeconds(4)).grace(Duration.ofSeconds(1));
         // aggregation: average load, max load, count
-        Initializer<ProductionAggregation> productionEventsInitializer = () -> new ProductionAggregation(0,0, 0);
+        Initializer<ProductionAggregation> productionEventsInitializer = () -> new ProductionAggregation(0,0, 0, new HashMap<>(), new HashMap<>());
 
         Aggregator<String, ProductionEvent, ProductionAggregation> productionEventAggregator = (key, production, productionAggregation) -> {
             int newProductionEventCount = productionAggregation.getCount() + 1;
-            double newMaxLoad = Math.max(productionAggregation.getMaxLoad(), production.getLoad());
-            double newAverageLoad = (productionAggregation.getAverageLoad() * (newProductionEventCount - 1) + production.getLoad()) / newProductionEventCount;
-            return new ProductionAggregation(newAverageLoad, newMaxLoad, newProductionEventCount);
+            // add pv to list - JANKY
+            if(productionAggregation.getPvList() == null) {
+                productionAggregation.setPvList(new HashMap<>());
+            }
+            if(productionAggregation.getPvCounts() == null) {
+                productionAggregation.setPvCounts(new HashMap<>());
+            }
+            HashMap<String, Double> newPvList = productionAggregation.getPvList();
+            HashMap<String, Integer> pvCounts = productionAggregation.getPvCounts();
+            if (newPvList.containsKey(production.getPvId())) {
+                double currentLoad = newPvList.get(production.getPvId());
+                int currentCount = pvCounts.get(production.getPvId());
+                double updatedLoad = ((currentLoad * currentCount) + production.getLoad()) / (currentCount + 1);
+                int updatedCount = currentCount + 1;
+                newPvList.put(production.getPvId(), updatedLoad);
+                pvCounts.put(production.getPvId(), updatedCount);
+            } else {
+                newPvList.put(production.getPvId(), production.getLoad());
+                pvCounts.put(production.getPvId(), 1);
+            }
+
+            double totalLoad = 0.0;
+            int totalPvCount = newPvList.size();
+
+            for (double load : newPvList.values()) {
+                totalLoad += load;
+            }
+            double newAverageLoad = totalLoad;
+            double newMaxLoad = totalLoad / (double) newPvList.size();
+
+            return new ProductionAggregation(newAverageLoad, newMaxLoad, newProductionEventCount, newPvList, pvCounts);
         };
 
         // Window config for consumption events
@@ -274,8 +270,8 @@ public class EmsTopology {
         productionConsumptionJoined.print(Printed.<String, AggregatedProductionConsumption>toSysOut().withLabel("aggregatedConsumptionProductionStream"));
 
 
-        /**
-         * Join customer information to the joined stream
+        /*
+          Join customer information to the joined stream
          */
 
         KeyValueMapper<String, AggregatedProductionConsumption, String> keyMapper =
