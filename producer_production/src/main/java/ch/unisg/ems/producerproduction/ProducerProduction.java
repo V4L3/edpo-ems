@@ -81,7 +81,7 @@ public class ProducerProduction {
             ProducerRecord<byte[], String> record = new ProducerRecord<>(TOPIC_NAME, key, message);
             producer.send(record);
             try {
-                Thread.sleep(500);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

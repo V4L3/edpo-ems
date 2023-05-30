@@ -270,8 +270,8 @@ public class EmsTopology {
         productionConsumptionJoined.print(Printed.<String, AggregatedProductionConsumption>toSysOut().withLabel("aggregatedConsumptionProductionStream"));
 
 
-        /**
-         * Join customer information to the joined stream
+        /*
+          Join customer information to the joined stream
          */
 
         KeyValueMapper<String, AggregatedProductionConsumption, String> keyMapper =
