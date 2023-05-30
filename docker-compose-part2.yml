@@ -61,12 +61,25 @@ services:
   event-processor:
     build:
       context: ./event_processor
+    hostname: event-processor
     image: edpo-ems-event-processor
+    ports:
+      - "7071:7071"
     networks:
       - ems
     depends_on:
       - kafka
       - kafka-create-topics
+
+  frontend-monitoring:
+    build:
+      context: ./frontend-monitoring
+    image: edpo-ems-frontend-monitoring
+    stdin_open: true
+    ports:
+      - "3003:3003"
+    networks:
+      - ems
 
   actuator:
     build:

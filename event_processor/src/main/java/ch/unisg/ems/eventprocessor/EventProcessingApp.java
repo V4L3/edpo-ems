@@ -32,7 +32,7 @@ class EventProcessingApp {
     streams.start();
 
     // start the REST service
-    HostInfo hostInfo = new HostInfo("localhost", 7071);
+    HostInfo hostInfo = new HostInfo("event-processor", 7071);
     MonitorService service = new MonitorService(hostInfo, streams);
     service.start();
   }
