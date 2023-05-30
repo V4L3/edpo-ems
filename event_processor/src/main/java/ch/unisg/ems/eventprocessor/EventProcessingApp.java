@@ -16,7 +16,7 @@ class EventProcessingApp {
     // set the required properties for running Kafka Streams
     Properties config = new Properties();
     config.put(StreamsConfig.APPLICATION_ID_CONFIG, "dev");
-    config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:29092");
+    config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:29092");
 
     // build the topology and start streaming!
     KafkaStreams streams = new KafkaStreams(topology, config);
