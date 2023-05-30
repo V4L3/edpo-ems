@@ -8,7 +8,7 @@ FROM openjdk:17
 
 COPY --from=build /app/target/producer-consumption-0.0.1-SNAPSHOT.jar ./producer-consumption-0.0.1-SNAPSHOT.jar
 
-COPY --from=build /app/src/main/resources/application.properties ./application.properties
+COPY --from=build /app/src/main/resources/application-docker.properties ./application.properties
 
 COPY --from=build /app/src/main/resources/loadprofiles loadprofiles
 

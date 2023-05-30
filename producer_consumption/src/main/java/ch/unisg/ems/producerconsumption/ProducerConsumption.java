@@ -12,7 +12,6 @@ import java.util.*;
 public class ProducerConsumption {
 
     private final static String TOPIC_NAME = "energy_consumption";
-    private final static String BOOTSTRAP_SERVERS = "localhost:9092";
 
     // dataset path, csv file has to be in resources directory
     private final static String LOAD_PROFILE_DIRECTORY = "loadprofiles";

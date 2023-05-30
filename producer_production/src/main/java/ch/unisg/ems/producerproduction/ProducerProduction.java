@@ -12,8 +12,6 @@ import java.util.Date;
 public class ProducerProduction {
 
     private final static String TOPIC_NAME = "pv_production";
-    private final static String BOOTSTRAP_SERVERS = "localhost:9092";
-
     private final static String LOAD_PROFILE_DIRECTORY = "loadprofiles";
     // dataset path, csv file has to be in resources directory
     private final static String DEFAULT_CSV_DATASET = "2022_Production.csv";
