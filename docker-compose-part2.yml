@@ -1,4 +1,3 @@
-
 services:
   zookeeper:
     image: "bitnami/zookeeper:latest"
@@ -32,7 +31,7 @@ services:
       - zookeeper
     working_dir: /data
     volumes:
-        - ./data:/data
+      - ./data:/data
 
   kafka-create-topics:
     image: "confluentinc/cp-enterprise-kafka:6.0.0"
@@ -58,6 +57,58 @@ services:
       JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
     depends_on:
       - kafka
+
+  event-processor:
+    build:
+      context: ./event_processor
+    image: edpo-ems-event-processor
+    networks:
+      - ems
+    depends_on:
+      - kafka
+      - kafka-create-topics
+
+  actuator:
+    build:
+      context: ./actuator
+    image: edpo-ems-actuator
+    networks:
+      - ems
+    depends_on:
+      - kafka
+      - kafka-create-topics
+
+  producerA:
+    build:
+      context: ./producer_production
+    image: edpo-ems-producer-production
+    environment:
+      JAVA_OPTS: "2022_Production2.csv"
+    networks:
+      - ems
+
+  producerB:
+    image: edpo-ems-producer-production
+    environment:
+      JAVA_OPTS: "2022_Production.csv"
+    networks:
+      - ems
+
+  consumerA:
+    build:
+      context: ./producer_consumption
+    image: edpo-ems-producer-consumption
+    environment:
+      JAVA_OPTS: "2022_Consumption.csv"
+    networks:
+      - ems
+
+  consumerB:
+    image: edpo-ems-producer-consumption
+    environment:
+      JAVA_OPTS: "2022_Consumption2.csv"
+    networks:
+      - ems
 
 networks:
   ems:

@@ -37,7 +37,7 @@ public class ProducerProduction {
         String filePath = Resources.getResource(LOAD_PROFILE_DIRECTORY + "/" + dataset).getFile();
 
         // replace file path to work with docker container
-        filePath = filePath.replace("file:/app.jar!/", "/app/");
+        filePath = filePath.replaceAll("file:\\/.*jar!\\/", "/");
 
         System.out.println("resources path: " + filePath);
         try (CSVReader csvReader = new CSVReader(new FileReader(filePath))) {

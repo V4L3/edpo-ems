@@ -36,7 +36,7 @@ public class ProducerConsumption {
         String filePath = Resources.getResource(LOAD_PROFILE_DIRECTORY + "/" + dataset).getFile();
 
         // replace file path to work with docker container
-        filePath = filePath.replace("file:/app.jar!/", "/app/");
+        filePath = filePath.replaceAll("file:\\/.*jar!\\/", "/");
 
         // read csv dataset to arraylist
         System.out.println("resources path: " + filePath);
