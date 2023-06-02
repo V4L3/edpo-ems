@@ -1,4 +1,4 @@
-# 13 Stateful Streaming Processors
+# 12 Stateful Streaming Processors
 
 Date: 2020-05-23
 

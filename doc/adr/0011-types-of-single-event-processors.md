@@ -1,4 +1,4 @@
-# 12 Types of Single Event Processors
+# 11 Types of Single Event Processors
 
 Date: 2020-05-23
 
