@@ -1,4 +1,4 @@
-# EMSai - EDPO Project Group 3
+# Assignment 1: EMSai - EDPO Project Group 3
 
 EMSai is an energy management systems provider.
 The project was developed as part of the EDPO course at the University of St. Gallen.
