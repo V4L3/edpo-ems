@@ -1,4 +1,4 @@
-# 11 JSON Serialization for Kafka Streams
+# 10 JSON Serialization for Kafka Streams
 
 Date: 2020-05-23
 
