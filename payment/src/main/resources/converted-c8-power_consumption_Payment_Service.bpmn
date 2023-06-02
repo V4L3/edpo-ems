@@ -67,7 +67,7 @@
     <bpmn:sequenceFlow id="Flow_112jehh" name="&#60; 4 reminder sent" sourceRef="Gateway_1lbroms" targetRef="Activity_03q6uoh">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=number(reminderCounter) &lt; 4</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:endEvent id="Event_1plkfe4">
+    <bpmn:endEvent id="Event_1plkfe4" name="Handed over to legal team. End Process.">
       <bpmn:incoming>Flow_1cm27dx</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_1cm27dx" sourceRef="Activity_15h05mr" targetRef="Event_1plkfe4" />
@@ -131,6 +131,9 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1plkfe4_di" bpmnElement="Event_1plkfe4">
         <dc:Bounds x="1002" y="302" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="982" y="345" width="77" height="40" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1osr7t5_di" bpmnElement="Activity_03q6uoh">
         <dc:Bounds x="280" y="280" width="100" height="80" />

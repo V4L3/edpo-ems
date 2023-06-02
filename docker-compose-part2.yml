@@ -102,6 +102,15 @@ services:
     networks:
       - ems
 
+  producerC:
+    build:
+      context: ./producer_production
+    image: edpo-ems-producer-production
+    environment:
+      JAVA_OPTS: "2022_Production_newPVID.csv"
+    networks:
+      - ems
+
   producerB:
     build:
       context: ./producer_production

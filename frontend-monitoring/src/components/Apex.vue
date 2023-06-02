@@ -47,8 +47,6 @@
                                 </v-row>
                             </v-card-text>
                             <v-card-actions>
-                                <v-spacer></v-spacer>
-                                <v-btn variant="text" color="primary" @click="">Show consumers</v-btn>
                             </v-card-actions>
                         </v-card>
                     </v-col>
