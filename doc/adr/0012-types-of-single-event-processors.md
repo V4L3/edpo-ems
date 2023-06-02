@@ -16,11 +16,11 @@ We decided on four different event processors:
 
 Firstly, we are using the "Content Filter" to get the relevant attributes from the data, as the provided data has unnessecary information included.
 
-Secondly, we drop the failure measurement by filtering the values with an "Event Filter" which are not allowed or even possible.
+Secondly, with the "Event Translator" we map units of the energy consumption / production from different Units to a defined unit, like "kW".
 
-Thirdly, with the "Event Translator" we map units of the energy consumption / production from different Units to a defined unit, like "kW".
+Thirdly, there will be a merging (Event Stream Processor) of the correct and mapped data, that the data can be directed to the aggregator for the next steps.
 
-Lastly, there will be a merging (Event Stream Processor) of the correct and mapped data, that the data can be directed to the aggregator for the next steps.
+Lastly, we drop the failure measurement by filtering the values with an "Event Filter" which are not allowed or even possible.
 
 ## Consequences
 

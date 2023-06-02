@@ -18,7 +18,7 @@ The event grouper is responsible for grouping related events based on certain cr
 
 The event aggregator performs aggregations on the grouped events. It calculates summary statistics, such as averages, totals, counts, or other aggregate values, within each group. The aggregator is responsible to aggregate new the values to an average load and maximum load.
 
-The event joiner combines events from multiple streams or sources based on common attributes or keys. By joining events, you can correlate data from different sources, enabling more comprehensive analysis or combining information for a holistic view. Therefore, we use the Event Joiner to join the data of a producer to the consumer of a specific customer ID, to get insight of their energy management.
+The event joiner (Windowed Join) combines events from multiple streams or sources based on common attributes or keys. By joining events, you can correlate data from different sources, enabling more comprehensive analysis or combining information for a holistic view. Therefore, we use the Event Joiner to join the data of a producer to the consumer of a specific customer ID, to get insight of their energy management.
 
 ## Consequences
 
