@@ -77,9 +77,11 @@ services:
     image: edpo-ems-frontend-monitoring
     stdin_open: true
     ports:
-      - "3003:3003"
+      - "3001:3001"
     networks:
       - ems
+    depends_on:
+      - event-processor
 
   actuator:
     build:
@@ -101,6 +103,8 @@ services:
       - ems
 
   producerB:
+    build:
+      context: ./producer_production
     image: edpo-ems-producer-production
     environment:
       JAVA_OPTS: "2022_Production.csv"
@@ -117,6 +121,8 @@ services:
       - ems
 
   consumerB:
+    build:
+      context: ./producer_consumption
     image: edpo-ems-producer-consumption
     environment:
       JAVA_OPTS: "2022_Consumption2.csv"
