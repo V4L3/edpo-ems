@@ -1,6 +1,7 @@
 package ch.unisg.ems.payment.flow;
 
 import ch.unisg.ems.payment.domain.Invoice;
+import ch.unisg.ems.payment.flow.payload.SendInvoiceNotificationToLegalTeamCommandPayload;
 import ch.unisg.ems.payment.flow.payload.SendReminderToClientCommandPayload;
 import ch.unisg.ems.payment.messages.Message;
 import ch.unisg.ems.payment.messages.MessageSender;
@@ -29,21 +30,41 @@ public class SendReminderAdapter {
         OfferFlowContext context = OfferFlowContext.fromMap(job.getVariablesAsMap());
         Invoice invoice = invoiceRepository.findById(context.getInvoiceId()).get();
 
-        SendReminderToClientCommandPayload payload = new SendReminderToClientCommandPayload();
-        payload.setOfferId(invoice.getOfferId());
-        payload.setInvoiceId(invoice.getId());
-        payload.setClientEmail(invoice.getClientEmail());
-        payload.setMessage("Reminder to pay invoice");
-
-        System.out.println("Sending reminder to client: " + payload);
-
-        messageSender.send(new Message<SendReminderToClientCommandPayload>(
-                "SendInvoiceReminderToClientCommand",
-                payload
-        ), "ems-notification");
-
         HashMap<String, String> newVariables = new HashMap<>();
-        newVariables.put("reminderSent","true");
+
+        // if reminders are sent 5 times and the payment has still not arrived, complete job gracefully and send event to legal team
+        if (context.getReminderSent().equals("true") && context.getReminderCounter() > 4) {
+            SendInvoiceNotificationToLegalTeamCommandPayload payload = new SendInvoiceNotificationToLegalTeamCommandPayload();
+            payload.setOfferId(invoice.getOfferId());
+            payload.setInvoiceId(invoice.getId());
+            payload.setClientEmail(invoice.getClientEmail());
+            payload.setMessage("Reminder to pay invoice");
+
+            messageSender.send(new Message<SendInvoiceNotificationToLegalTeamCommandPayload>(
+                    "SendInvoiceNotificationToLegalTeam",
+                    payload
+            ), "ems-notification");
+            System.out.println("Sending reminder to legal team: " + payload);
+
+            // mark process as complete when reminder is sent to legal team
+            client.newCompleteCommand(job);
+        } else {
+            SendReminderToClientCommandPayload payload = new SendReminderToClientCommandPayload();
+            payload.setOfferId(invoice.getOfferId());
+            payload.setInvoiceId(invoice.getId());
+            payload.setClientEmail(invoice.getClientEmail());
+            payload.setMessage("Reminder to pay invoice");
+
+            messageSender.send(new Message<SendReminderToClientCommandPayload>(
+                    "SendInvoiceReminderToClientCommand",
+                    payload
+            ), "ems-notification");
+
+            newVariables.put("reminderSent","true");
+            newVariables.put("reminderCounter","1");
+            System.out.println("Sending reminder to client: " + payload);
+        }
+
 
         System.out.println("Invoice reminder is sent");
 

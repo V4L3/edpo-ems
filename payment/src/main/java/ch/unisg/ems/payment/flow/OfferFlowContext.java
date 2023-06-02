@@ -27,6 +27,14 @@ public class OfferFlowContext {
     @Setter
     private float amount;
 
+    @Getter
+    @Setter
+    private String reminderSent;
+
+    @Getter
+    @Setter
+    private Integer reminderCounter;
+
 
     public static OfferFlowContext fromMap(Map<String, Object> values) {
         OfferFlowContext context = new OfferFlowContext();
@@ -35,6 +43,8 @@ public class OfferFlowContext {
         context.invoiceId = (String) values.get("invoiceId");
         context.clientEmail = (String) values.get("clientEmail");
         context.amount = Float.parseFloat((String) values.get("amount"));
+        context.reminderSent = (String) values.get("reminderSent");
+        context.reminderCounter = Integer.parseInt(((String) values.get("reminderCounter")) == "null" ? "0" : (String) values.get("reminderCounter"));
         return context;
     }
 
@@ -45,6 +55,8 @@ public class OfferFlowContext {
         map.put("invoiceId", invoiceId);
         map.put("clientEmail", clientEmail);
         map.put("amount", String.valueOf(amount));
+        map.put("reminderSent", reminderSent);
+        map.put("reminderCounter", String.valueOf(reminderCounter));
         return map;
     }
 
