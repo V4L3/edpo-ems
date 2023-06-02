@@ -7,7 +7,7 @@ spring:
   application.name: api
 
 kafka:
-  bootstrap-address: localhost:9092
+  bootstrap-address: localhost:29092
   ems.topic-name: ems
   group-id: "ems"
   trusted-packages: "ch.unisg.ems.api.dto"

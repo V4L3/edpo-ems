@@ -101,6 +101,8 @@ public class MessageListener {
             context.setTraceId(traceId);
             context.setClientEmail(invoice.getClientEmail());
             context.setAmount(invoice.getAmount());
+            context.setReminderCounter(0);
+            context.setReminderSent("false");
 
             zeebe.newCreateInstanceCommand() //
                     .bpmnProcessId("payment-service") //

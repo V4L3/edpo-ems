@@ -17,7 +17,7 @@ To ensure correct behavior, make sure all the containers are running before star
 ## Architecture
 
 ### Architectural Decisions
-ADR's can be found in the [doc/adr](doc/adr/) folder.
+ADR's can be found in the [doc/adr](doc/adr/) folder (specifically for Part 1 ADR 01 - 08).
 
 ### Overview
 ![main-flow.png](doc%2Fimages%2Fmain-flow.png)
@@ -146,7 +146,7 @@ To run the frontend run `npm install` and `npm run dev` in the frontend folder.
 8. Customer does not respond
 9. Offer is marked as cancelled and the process is terminated
 
-#### Payment - invoice not paid (To be implemented)
+#### Payment - invoice not paid 
 1. Payment service receives the installation confirmed event
 2. Payment service starts the payment process
 3. The Invoice is sent to the customer
@@ -154,4 +154,5 @@ To run the frontend run `npm install` and `npm run dev` in the frontend folder.
 4. A reminder is sent to the customer
    **Output**: Email gets logged in the console of the notification service.
 5. Customer does not respond
-6. After 10 reminders the invoice is escalated to the legal department and the process is terminated.
+6. After 4 reminders the invoice is escalated to the legal department and the process is terminated.
+   **Output**: Command gets logged in the console of the payment service.

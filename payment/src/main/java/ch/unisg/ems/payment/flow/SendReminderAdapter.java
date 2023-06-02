@@ -33,7 +33,7 @@ public class SendReminderAdapter {
         HashMap<String, String> newVariables = new HashMap<>();
 
         // if reminders are sent 5 times and the payment has still not arrived, complete job gracefully and send event to legal team
-        if (context.getReminderSent().equals("true") && context.getReminderCounter() > 4) {
+        if (context.getReminderSent().equals("true") && context.getReminderCounter() >= 4) {
             SendInvoiceNotificationToLegalTeamCommandPayload payload = new SendInvoiceNotificationToLegalTeamCommandPayload();
             payload.setOfferId(invoice.getOfferId());
             payload.setInvoiceId(invoice.getId());
@@ -61,7 +61,7 @@ public class SendReminderAdapter {
             ), "ems-notification");
 
             newVariables.put("reminderSent","true");
-            newVariables.put("reminderCounter","1");
+            newVariables.put("reminderCounter",context.getReminderCounter() + 1 + "");
             System.out.println("Sending reminder to client: " + payload);
         }
 
