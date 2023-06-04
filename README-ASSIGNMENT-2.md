@@ -11,19 +11,22 @@ To start the application, you need to have [Docker](https://www.docker.com/) ins
 There are two ways to start the application:
 
 ### Docker only setup
-run `docker-compose -f docker-compose-part2.yml --build`.
+run `docker-compose -f docker-compose-part2.yml up --build`.
 
 This should start all the services, the frontend and 3 instances of the energy-production service and 2 instances of the engergy-consumption service.
 It might take a while for the services to start up and for the data to be visible in the frontend.
 
 ### Docker and IDE setup
 
-run `docker-compose -f docker-compose-kafka.yml --build` to start Kafka, Zookeeper and Kafdrop.
+run `docker-compose -f docker-compose-kafka.yml up --build` to start Kafka, Zookeeper and Kafdrop.
 To ensure correct behavior, make sure all the containers are running before starting the services.
 
+Change the Bootstrap Server Address in the [EventProcessingApp](event_processor/src/main/java/ch/unisg/ems/eventprocessor/EventProcessingApp.java) to `localhost:29092`.
+Change the Bootstrap Address in the property files of the producer, consumer and actuator services to `localhost:29092`.
+
 Then start the services individually in the following order:
-1. energy-consumption
-2. energy-production
+1. producer-consumption
+2. producer-production
 3. event-processor
 4. actuator
 5. frontend

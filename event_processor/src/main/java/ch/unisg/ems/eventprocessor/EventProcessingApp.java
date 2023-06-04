@@ -17,6 +17,8 @@ class EventProcessingApp {
     Properties config = new Properties();
     config.put(StreamsConfig.APPLICATION_ID_CONFIG, "dev");
     config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
+    // Uncomment this to run the application locally (without Docker)
+    /*config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:29092");*/
 
     // build the topology and start streaming!
     KafkaStreams streams = new KafkaStreams(topology, config);
